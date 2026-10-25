@@ -1,0 +1,168 @@
+# 🧪 Lab 01: Getting Started with AI Agents – Moodboard Generator
+
+## AI Agent Workflows
+- ["Hello World!"](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Labs/Lab%2001:%20The%20Autonomous%20Research%20Agent.md#hello-world)
+
+- [My First AI Agent with N8N: Conditional Flow](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Labs/Lab%2001:%20The%20Autonomous%20Research%20Agent.md#my-first-ai-agent-with-n8n-conditional-flow)
+
+- [Prompt Generator](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Labs/Lab%2001:%20The%20Autonomous%20Research%20Agent.md#prompt-generator)
+
+- [Moodboard Agent](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Labs/Lab%2001:%20The%20Autonomous%20Research%20Agent.md#moodboard-agent)
+
+----
+
+### Hello World!
+
+<h1></h1>
+
+This "Hello World" lab is a foundational exercise designed to verify that your n8n environment is correctly installed and configured. By building this simple workflow, you confirm that you can create nodes, configure them, and successfully execute an end-to-end process.
+
+**Lab Summary: Hello World in n8n**
+
+- <b>Objective:</b> The primary goal is to validate your development environment by displaying a "Hello World!" message. This provides immediate confirmation that the system is operational.
+
+- <b>Key Tasks:</b>
+
+  - Initialize a new workflow within the n8n interface.
+  
+  - Add a Manual Trigger node to initiate the workflow manually.
+  
+  - Configure a Code node to return the string: {"message": "Hello World!"}.
+  
+  - Execute the workflow and inspect the output in the n8n interface to verify successful delivery.
+
+- <b>Why It Matters:</b> While simple, this exercise is a standard "passing ritual" for developers. It ensures your toolchain (editor, interpreter, and execution environment) is working correctly before you attempt to build more complex, agentic automations.
+
+This lab serves as your first step toward becoming a "flow programmer," helping you get comfortable with the n8n canvas and data flow before you move on to advanced agentic workflows.
+
+![Hello World!](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Hello%20World%20Message%20Workflow%20screenshot.png)
+
+<b>View DEMO:</b> [HERE](https://youtu.be/hCA3ZIhQVc8)
+
+<b> View JSON:</b> [HERE](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Hello%20World.json)
+
+<h1></h1>
+
+### My First AI Agent with N8N: Conditional Flow
+
+<h1></h1>
+
+In this lab, I walk through the fundamentals of n8n workflow automation by focusing on four key areas:
+
+- <b>Trigger Management:</b> Setting up schedules to act as an agent's "heartbeat."
+
+- <b>Data Transformation:</b> Using the Code Node to inject and manipulate JSON data.
+
+- <b>Conditional Logic:</b> Implementing If nodes to evaluate information.
+
+- <b>Branching Workflows:</b> Executing different actions based on real-time data analysis.
+
+The lab is structured as a logical flow, beginning with a Schedule Trigger to define my automation frequency, followed by a Code Node that simulates a data source, such as weather conditions. From there, I utilize an If Node as a logic engine to evaluate that data—for instance, checking if the weather is "sunny"—and finally, I connect Set Nodes to define distinct branching outcomes, such as sending a bright message for sunny days or a calmer one for cloudy conditions.
+
+<br>
+
+<b>💡 The Learning Outcome:</b> By following these steps, I can visualize how data flows through the system and how my logic dictates the final output. This process ensures that I am not just building a static script, but a dynamic, decision-making workflow that serves as the foundation for the more advanced autonomous agents I plan to build later.
+
+
+![My First AI Agent with N8N](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/My%20First%20AI%20Agent%20with%20N8N%20%2B%20Output.png)
+
+<b>View DEMO:</b> [HERE](https://youtu.be/FcLEMod7w-M)
+
+<b> View JSON:</b> [HERE](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/My%20First%20AI%20Agent%20with%20N8N.json)
+
+
+<h1></h1>
+
+### Prompt Generator
+
+<h1></h1>
+
+The **Prompt Generator** is an automated AI agent built in **n8n** that transforms simple, high-level style ideas into professionally structured image generation prompts. This lab demonstrates the transition from a basic chatbot to a specialized AI agent by utilizing **System Messages** to define roles and constraints.
+
+**Workflow Architecture**
+
+The workflow follows a linear path from user input to AI-enhanced output:
+1.  **On Chat Message (Trigger):** Captures user input (e.g., "bohemian rugs") via the n8n chat interface.
+2.  **AI Agent (Logic):** Processes the input using a specific "Job Description" (System Message).
+3.  **Google Gemini (Model):** The Large Language Model (LLM) that powers the creativity and text generation.
+
+**Key Features**
+* **Prompt Engineering:** Automatically expands simple phrases into detailed descriptions covering style, texture, lighting, and color palettes.
+* **System Prompting:** Uses a rigorous system message to ensure the AI acts as an "Expert Image Generation Prompt Engineer."
+* **Design-Ready Output:** Generates structured prompts specifically optimized for creating high-quality moodboards.
+
+<br>
+
+![Prompt Generator](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Prompt%20Generator%20Workflow.png)
+
+<br>
+
+![Prompt Generator - Chat Message for Green Rug](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Prompt%20Generator%20Workflow%20-%20Green%20Rug%20Moodboard%20Generator.png)
+
+
+<b>View DEMO:</b> [HERE](https://youtu.be/gX631XzlhJg)
+
+<h1></h1>
+
+### Moodboard Agent
+
+<h1></h1>
+
+In this lab, I evolved a basic text-based workflow into a fully automated **Moodboard Agent**. By chaining together multiple AI models and custom logic, the agent transforms a simple home décor concept into a high-fidelity, professional moodboard image.
+
+**Workflow Architecture**
+The system is built on a 4-step pipeline designed for precision and stability:
+
+1.  **Trigger (User Input):** Captures a basic décor idea through the n8n chat interface to kick off the automation.
+2.  **The Brain (Prompt Engineer):** Powered by **Google Gemini**, this node uses specialized system prompting to expand raw ideas into detailed technical descriptions (styles, textures, and color palettes).
+3.  **The Editor (Clean Prompt):** A custom **JavaScript** node that sanitizes the AI output. It removes line breaks and Markdown formatting to ensure the data is safe for API transmission.
+4.  **The Artist (Hugging Face):** An HTTP Request node that sends the cleaned instructions to the **FLUX.1-schnell** model to generate the final image.
+
+**Key Learning Outcomes**
+* **Advanced Prompt Engineering:** Defining specific roles and tasks within an AI Agent.
+* **Data Sanitization:** Using JavaScript to resolve formatting conflicts between different AI models.
+* **API Integration:** Connecting to the Hugging Face Inference API using Bearer tokens and JSON body mapping.
+
+<br>
+
+![Moodboard Agent Workflow](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Moodboard%20Agent%20Workflow%20screenshot.png)
+
+<i>N8N Moodboard Agent Workflow Steps and Nodes</i>
+
+<h1></h1>
+
+<br>
+
+![Moodboard Agent Workflow N8N](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Moodboard%20Agent%20Workflow.png)
+
+<i>N8N Moodboard Agent Workflow Steps and Nodes (top) and bottom has chat input, input generate prompt, and output</i>
+
+<h1></h1>
+
+<br>
+
+![Moodboard Agent Workflow with Output](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Moodboard%20Agent%20Workflow%20with%20Output.png)
+
+<i>Executing Workflow</i>
+
+<h1></h1>
+
+<br>
+
+![Moodboard Agent Output Round Jute Rug Scandinavian](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Moodboard%20Agent%20Output%20Round%20Jute%20Rug%20Scandinavian.png)
+
+<i>Generated Moodboard Image</i>
+
+<h1></h1>
+
+
+<b>View DEMO (Part 1: Explaining Workflow Logic):</b> [HERE](https://youtu.be/NTS5aiap6MQ)
+
+
+<b>View DEMO (Part 2: Workflow in action):</b> [HERE](https://youtu.be/d6nro9oYpK4)
+
+<b>View JSON:</b> [HERE](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/Lab%20Artifacts/Lab%201/Moodboard%20Agent.json)
+
+<b> View N8N Workflow (JSON): [HERE](https://github.com/LashawnFofung/Agentic-Workflow-Hub/blob/main/N8N%20Workflow/Moodboard%20Agent%20N8N%20Workflow.json)
+
+<h1></h1>
