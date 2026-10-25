@@ -10,7 +10,8 @@ This repository documents an 8-week technical externship focused on building aut
 
 ### 🖼️ Project 1: Moodboard Agent (The Creative Foundation)
 *Transforming style prompts into curated visual outputs.*
-* **Lab 01:** [Moodboard Generator AI Agent](/Labs/Lab01 - Moodboard Generator.md)
+* **Lab 01:** [Moodboard Generator AI Agent](/Labs/moodboard%20generator.md)
+
 * **Artifacts:** [Product Requirement Document](#)
 
 ### 🔍 Project 2: Market Trend Discovery
