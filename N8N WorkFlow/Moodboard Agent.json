@@ -1,0 +1,281 @@
+{
+  "name": "Moodboard Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "0d4e01a7-d1d5-4bf3-ae25-aa1b945ac4ea",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "a29b7655-3952-4e32-b63e-ea9ebd26e456"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "System: Role: You are an expert image generation prompt engineer.\n\nTask: Your role is to take a simple input idea (e.g., \"bohemian rugs, neutral tones\") and transform it into one detailed, polished prompt for creating a high-quality moodboard.\n\nWhen creating the prompt, follow these guidelines:\n- Highlight the style, colors, and textures implied in the trend.\n- Include close-up material textures, styled interior spaces, and decor elements that complement the rug's look.\n- Arrange visuals as a clean, inspiration-ready collection that a design team could immediately use for trend insights.\n- Ensure the final output is ready-to-use, simple, and efficient for an image generator.\n\n"
+        }
+      },
+      "id": "4ed2c967-25c1-43b2-86c4-d1976c704b96",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "45e628d7-bec7-4eaa-9ec8-71da547e289c",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        256,
+        208
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8zTj1yEzgRvryRmz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# 1. Get the input prompt from the first item\ninput_prompt = _items[0][\"json\"].get('output', '') or ''\n\n# 2. Remove line breaks (replace with a space)\nclean_prompt = \" \".join(input_prompt.splitlines())\n\n# 3. Remove Markdown (** and * bullets)\nclean_prompt = clean_prompt.replace(\"**\", \"\").replace(\"*\", \"\")\n\n# 4. Replace double quotes with single quotes\nclean_prompt = clean_prompt.replace('\"', \"'\")\n\n# 5. Build n8n-compatible return\nreturn [\n  {\n    \"json\": {\n      \"prompt\": clean_prompt\n    }\n  }\n]\n"
+      },
+      "id": "dd643941-8d1b-42fc-85ed-c91b4742511b",
+      "name": "Clean Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudflare.com/client/v4/accounts/c82b413b93dd157d87c9c1518c72efb8/ai/run/@cf/black-forest-labs/flux-1-schnell",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer cfut_GBFL1VWvQhntujN4SG9oikka0C9WzqIp7zaApDZJe94b3710"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prompt: ($json.prompt || \"\").slice(0, 2000), steps: 4 }) }}",
+        "options": {}
+      },
+      "id": "b7e73cc1-b7c0-4ccd-bce8-94f1a67af04b",
+      "name": "Cloudflare Image Generator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 800,
+        "width": 1744,
+        "color": "#6F4C39"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -192,
+        -240
+      ],
+      "typeVersion": 1,
+      "id": "686d135c-3d32-437a-92c3-4121653e3098",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 448,
+        "width": 256,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -64,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "a86ebab5-5eec-45c4-b71a-b05e8fb9d47b",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 448,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        208,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "34833faf-7e07-45c5-8dda-7a80ff3ea0c7",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 448,
+        "width": 256,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        480,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "ef03903a-cd18-4714-bc03-d2f13ac0bb31",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 448,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        752,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "735c9594-c910-4d1e-b354-da222f93d7c8",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "",
+        "height": 448,
+        "width": 256,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1024,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "04ba700a-2106-4506-a2bc-e41d330a9143",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Convert Cloudflare Workers AI JSON response (base64) into a downloadable image file\nimport base64\n\nitems = _items\nresults = []\n\nfor item in items:\n    # works whether \"Full Response\" is on or off\n    item_json = item.get(\"json\", {})\n    \n    # Check if 'result' is at the root level, otherwise look inside 'body'\n    body = item_json if \"result\" in item_json else item_json.get(\"body\", {})\n    \n    # Safely extract the base64 text string from result dictionary\n    result_data = body.get(\"result\", {}) if isinstance(body, dict) else {}\n    base64_str = result_data.get(\"image\", \"\") if isinstance(result_data, dict) else \"\"\n\n    if not base64_str:\n        # Throw an error if the base64 string is missing\n        raw_json_preview = str(item_json)[:200]\n        raise ValueError(f\"No image found in response: {raw_json_preview}\")\n\n    # Decode the text string back into raw bytes (equivalent to JavaScript Buffer)\n    image_bytes = base64.b64decode(base64_str)\n\n    # Reconstruct the n8n item format\n    output_item = {\n        \"json\": {\n            \"fileName\": \"moodboard.jpg\",\n            \"mimeType\": \"image/jpeg\",\n            \"sizeBytes\": len(image_bytes)\n        },\n        \"binary\": {\n            # Use n8n's native python setter to package the image file bytes\n            \"data\": this.setBinaryData(image_bytes, \"moodboard.jpg\", \"image/jpeg\")\n        }\n    }\n    \n    results.append(output_item)\n\nreturn results\n"
+      },
+      "id": "36bf3987-a7c6-4128-94ea-4a756af14513",
+      "name": "View Output File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Clean Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Prompt": {
+      "main": [
+        [
+          {
+            "node": "Cloudflare Image Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cloudflare Image Generator": {
+      "main": [
+        [
+          {
+            "node": "View Output File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "05b0442f-edb8-4d39-8519-7d8ef4e88ae6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b39529f7bfe08a557cbbcc3a4e3f9962345006fef652db832cd3e5ce1edc6ce7"
+  },
+  "nodeGroups": [],
+  "id": "j5RN2DyxtUYmfRP5",
+  "tags": []
+}
