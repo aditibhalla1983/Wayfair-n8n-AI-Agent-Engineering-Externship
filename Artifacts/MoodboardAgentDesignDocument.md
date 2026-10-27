@@ -122,8 +122,6 @@ It then prepares an output item containing:
 This node pulls the image out of that JSON and rebuilds it as a proper moodboard.jpg file you can open and download.
 ![Moodboard Image](images/moodboard.jpg)
 
-`![Generated Moodboard](Artifacts/images/moodboard.jpg)`
-
 ## Summary
 
 This workflow demonstrates an end-to-end AI pipeline: capturing a design idea, refining it with a language model, normalizing the prompt, generating an image, and preparing the output file. Each node has a distinct responsibility, making the prototype easier to test, debug, and extend.
