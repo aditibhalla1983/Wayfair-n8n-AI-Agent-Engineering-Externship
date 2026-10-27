@@ -17,6 +17,8 @@ This repository documents an 8-week technical externship focused on building aut
 
 * **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)
 
+* **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)
+
 ### 🔍 Project 2: Market Trend Discovery
 *Building agents to scrape and analyze product data and social media.*
 * **Lab 02:** Discovery AI Agent
