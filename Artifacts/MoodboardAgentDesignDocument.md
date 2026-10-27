@@ -31,10 +31,12 @@ flowchart TD
     style R fill:#e8f1ff,stroke:#5284c4
 ```
 
-### ![AI-generated Moodboard](images/MoodBoardAgent.png)
+
 
 
 ## 2. Agent Workflow and Responsibilities
+
+ ![AI-generated Moodboard](images/MoodBoardAgent.png)
 
 | Stage | Component | Responsibility |
 |---|---|---|
