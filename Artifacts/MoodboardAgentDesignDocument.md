@@ -1,458 +1,318 @@
-# 🧠 AI Agent Design Document
-## Lab 01 — Workflow Automation & AI Moodboard Design
+# Moodboard AI Agent — Agent Design Document
 
-> **Project:** Moodboard Generator AI Agent  
-> **Category:** Generative AI · Workflow Automation · Prompt Engineering  
-> **Orchestration:** n8n  
-> **Language model:** Google Gemini  
-> **Prompt processing:** Custom script node  
-> **Image generation:** External image-generation API  
-> **Status:** Prototype
+## 1. Overview
 
----
+The Moodboard AI Agent is an n8n workflow that transforms a simple interior-design idea into a generated moodboard image.
 
-## 1. Executive Summary
+The workflow accepts a user's idea through a chat interface, uses Google Gemini to expand it into a detailed image-generation prompt, cleans the prompt with Python, sends it to Cloudflare Workers AI using FLUX.1-schnell, and packages the returned Base64 image as a downloadable file named `moodboard.jpg`.
 
-The Moodboard Generator AI Agent explores how a generative AI workflow can transform a short design idea into a structured image-generation prompt and, ultimately, a visual moodboard.
+**Key technologies**
+- **Workflow orchestration:** n8n
+- **Prompt generation:** Google Gemini Chat Model
+- **Image generation:** Cloudflare Workers AI — FLUX.1-schnell
+- **Text processing:** Python Native Code nodes
+- **User input:** n8n Chat Trigger
+- **Output:** `moodboard.jpg`
 
-The prototype was developed incrementally across four phases:
+## 2. Problem Statement
 
-1. **Environment validation** — verify basic workflow execution.
-2. **Conditional orchestration** — route execution based on input conditions.
-3. **Context-aware prompt engineering** — transform a short keyword into a detailed creative brief.
-4. **End-to-end image generation** — connect prompt generation, script-based processing, and an external image-generation service.
+People may have a clear idea for a home-decor style but lack the vocabulary or experience to write a detailed image-generation prompt.
 
-The central design idea is to separate **creative reasoning, workflow control, prompt processing, and image generation** into distinct stages. This makes the workflow easier to understand, test, and improve.
+For example, a user may enter `White Rug` without specifying textures, materials, color variations, interior styling, or visual composition.
 
-## 2. Problem & Design Motivation
+The agent aims to bridge this gap by converting a short idea into a more descriptive prompt and generating a visual starting point.
 
-### The problem
+*This is a product hypothesis, not a validated user-research finding.*
 
-A short design request often does not contain enough detail to guide image generation toward a specific visual outcome.
+## 3. Goals and Non-Goals
 
-For example:
+### Goals
+- Accept a design idea through chat.
+- Generate a detailed image-generation prompt using an AI Agent.
+- Clean the generated prompt before sending it to an external API.
+- Generate an image through Cloudflare Workers AI.
+- Convert the response into an n8n binary image output.
+- Use `moodboard.jpg` as the output filename.
 
-`White Rug`
+### Non-Goals
+- Product catalog search or live inventory information.
+- Product recommendations with verified prices or purchase links.
+- Saved user accounts or moodboard history.
+- Multi-image editing or iterative refinement.
+- Automated image-quality scoring.
+- Production-scale monitoring or analytics.
 
-This input identifies the subject but leaves important creative decisions unspecified:
+These capabilities are not implemented in the supplied workflow.
 
-- Design aesthetic
-- Material and texture
-- Interior setting
-- Lighting and composition
-- Visual organization of the final moodboard
-
-### Design hypothesis
-
-An AI agent can enrich a short user request with structured visual details before passing it to an image-generation service.
-
-The intended workflow is:
-
-**Simple idea → Detailed creative brief → Processed prompt → Generated moodboard**
-
-This is a product hypothesis explored through a technical prototype, not a validated claim about customer outcomes.
-
----
-
-## 3. Agent Objectives
-
-The agent design focuses on five objectives:
-
-| Objective | Design intention |
-|---|---|
-| Understand input | Accept a short design request through a chat interface. |
-| Enrich intent | Use Google Gemini to generate a detailed visual prompt. |
-| Prepare the prompt | Process the generated text before sending it to another service. |
-| Generate imagery | Pass the processed prompt to an image-generation API. |
-| Return an artifact | Process the response and make the resulting image available. |
-
-The prototype also explores different prompt structures to understand how an AI model can generate either a focused aesthetic or a collection of distinct styles.
-
----
-
-## 4. High-Level Architecture
-
-### System architecture
+## 4. System Architecture
 
 ```mermaid
 flowchart TD
-    A[User submits design idea] --> B[n8n Chat Trigger]
-    B --> C[Google Gemini Prompt Builder]
-    C --> D[Script Node: Prompt Processing]
-    D --> E[External Image Generation API]
-    E --> F[Process Image Response]
-    F --> G[Return Moodboard Image]
+    A["Chat Trigger"] --> B["AI Agent"]
+    C["Google Gemini Chat Model"] -.-> B
+    B --> D["Clean Prompt — Python"]
+    D --> E["Cloudflare Image Generator"]
+    E --> F["View Output File — Python"]
+    F --> G["moodboard.jpg"]
 ```
 
-### Component responsibilities
+### Workflow sequence
 
-| Component | Responsibility | Design consideration |
+1. The user submits an idea through the chat trigger.
+2. The AI Agent uses Google Gemini to generate a detailed image prompt.
+3. The Clean Prompt node removes selected formatting characters and line breaks.
+4. The HTTP Request node sends the prompt to Cloudflare's FLUX image-generation endpoint.
+5. The View Output File node extracts the Base64 image payload and packages it as binary output.
+
+## 5. Node Design
+
+### 5.1 When Chat Message Received
+
+**Node type:** `@n8n/n8n-nodes-langchain.chatTrigger`
+
+**Purpose:** Starts the workflow when a user submits a message.
+
+**Example input:**
+```text
+White Rug
+```
+
+The supplied configuration uses default options and passes the incoming chat data to the AI Agent.
+
+### 5.2 AI Agent
+
+**Node type:** `@n8n/n8n-nodes-langchain.agent`
+
+**Purpose:** Acts as an image-generation prompt engineer.
+
+The system instructions direct the agent to:
+- Identify the style, colors, and textures implied by the idea.
+- Include close-up material textures.
+- Describe styled interior spaces and complementary decor.
+- Organize visuals into an inspiration-ready collection.
+- Produce a prompt suitable for an image generator.
+
+**Reliability configuration:**
+- Retry on failure: enabled
+- Maximum tries: 3
+- Wait between tries: 5,000 milliseconds
+
+The downstream Clean Prompt node reads the agent's `output` field.
+
+### 5.3 Google Gemini Chat Model
+
+**Node type:** `@n8n/n8n-nodes-langchain.lmChatGoogleGemini`
+
+**Purpose:** Provides the language model used by the AI Agent.
+
+The node connects to the AI Agent through n8n's language-model connection. The supplied JSON does not specify a model name or custom generation parameters, so those details are not assumed here.
+
+### 5.4 Clean Prompt
+
+**Node type:** `n8n-nodes-base.code`
+
+**Language:** Python Native
+
+**Purpose:** Cleans the generated prompt before the image-generation request.
+
+The code:
+1. Reads the AI Agent's `output` field.
+2. Replaces line breaks with spaces.
+3. Removes `**` and `*` characters.
+4. Replaces double quotation marks with single quotation marks.
+5. Returns the cleaned prompt under the `prompt` key.
+
+Simplified version of the supplied logic:
+
+```python
+input_prompt = _items[0]["json"].get("output", "") or ""
+
+clean_prompt = " ".join(input_prompt.splitlines())
+clean_prompt = clean_prompt.replace("**", "").replace("*", "")
+clean_prompt = clean_prompt.replace('"', "'")
+
+return [{"json": {"prompt": clean_prompt}}]
+```
+
+**Limitation:** This is basic text cleanup, not comprehensive input validation or security sanitization. The node reads the first input item, which fits the expected single-prompt workflow.
+
+### 5.5 Cloudflare Image Generator
+
+**Node type:** `n8n-nodes-base.httpRequest`
+
+**Purpose:** Sends the cleaned prompt to the image-generation model.
+
+**HTTP method:** `POST`
+
+**Model endpoint path:**
+`@cf/black-forest-labs/flux-1-schnell`
+
+**Request settings:**
+- Authorization: Bearer token
+- Content type: JSON
+- Prompt length: truncated to a maximum of 2,000 characters in the request expression
+- Steps: `4`
+- Full response: enabled
+
+The request body is configured to send the cleaned prompt and the `steps` value.
+
+**Security requirement:** Store the Cloudflare token in n8n credentials or a secure secret-management mechanism. Never publish a real token in workflow JSON or GitHub. If a token has already been exposed, revoke or rotate it.
+
+**Implementation consideration:** Test special characters such as quotes, backslashes, and Unicode characters in user prompts. Use safe structured JSON expression handling to avoid malformed request bodies.
+
+### 5.6 View Output File
+
+**Node type:** `n8n-nodes-base.code`
+
+**Language:** Python Native
+
+**Purpose:** Extracts the generated image and constructs an n8n binary output.
+
+The code:
+1. Checks the response for `result` at the root level or under `body`.
+2. Reads the image from `result.image`.
+3. Raises an error if the image payload is missing.
+4. Constructs an output item with file metadata and binary data.
+
+**Output metadata:**
+- Filename: `moodboard.jpg`
+- MIME type: `image/jpeg`
+
+**Limitation:** The node assumes the API returns a Base64 image string in `result.image`. The binary-data structure should be tested against the installed n8n version, and the final file should be opened to verify that it is a valid image.
+
+## 6. Data Flow
+
+| Stage | Input | Output |
 |---|---|---|
-| Chat Trigger | Receives the user's design request. | Preserve the original user intent. |
-| Google Gemini | Expands the request into a detailed visual brief. | Include relevant style, material, texture, and composition details. |
-| Script node | Processes and sanitizes the generated prompt. | Ensure the text conforms to the downstream API's expected input format. |
-| Image-generation API | Generates imagery from the processed prompt. | Handle API response formats and generation failures. |
-| Response-processing stage | Extracts or processes the generated image response. | Ensure the resulting image can be returned to the user. |
-| Output stage | Makes the moodboard available as an artifact. | Verify the output format and download behavior. |
+| Chat Trigger | User's design idea | Chat data |
+| AI Agent + Gemini | Chat data | Detailed prompt in `output` |
+| Clean Prompt | Generated prompt | Cleaned text in `prompt` |
+| Cloudflare Image Generator | Prompt and generation settings | API response containing image data |
+| View Output File | API response | Binary image output |
+| Final result | Binary image | `moodboard.jpg` |
 
-*The table describes the intended responsibilities of the workflow components. Error handling, validation, and output checks should be documented as implemented only after verification.*
+## 7. Prompt Design
 
----
+The system message focuses on five qualities:
 
-## 5. Design Principles
+- **Style:** Capture the aesthetic implied by the user's idea.
+- **Color:** Describe the relevant palette.
+- **Texture:** Include material and surface details.
+- **Context:** Incorporate styled interiors and complementary decor.
+- **Composition:** Create a coherent, inspiration-ready collection.
 
-### 5.1 Separate orchestration from generation
+### Example
 
-n8n manages the sequence of operations and connections between components. The language model handles prompt generation, while the image-generation service produces the visual output.
-
-This separation makes it easier to identify which stage needs improvement when a result is incorrect.
-
-### 5.2 Enrich the user's intent rather than replace it
-
-The prompt-generation stage should elaborate on the user's request without losing its central subject.
-
-For example, the input `White Rug` should remain focused on white rugs even when the model introduces additional details about texture, setting, or aesthetics.
-
-### 5.3 Keep downstream inputs predictable
-
-The prompt-processing stage exists to prepare generated text for the next API call.
-
-The goal is to avoid formatting incompatibilities and ensure the downstream service receives the expected prompt value.
-
-The exact sanitization rules should be documented alongside the script implementation.
-
-### 5.4 Experiment before adding complexity
-
-The lab began with a basic workflow and gradually introduced branching, AI-generated prompts, and image generation.
-
-This approach helps isolate workflow issues before adding more components.
-
----
-
-## 6. Agent Workflow: Four Development Phases
-
-### Phase 1 — Environment Handshake
-
-**Purpose:** Validate the n8n environment and basic workflow execution.
-
-**Workflow**
-
+**User input**
 ```text
-Manual Trigger → Code Node → JSON Response
+White Rug
 ```
 
-The Code node returned:
-
-```json
-{
-  "message": "Hello World!"
-}
-```
-
-**Why this phase matters**
-
-A minimal workflow provides a baseline for verifying trigger behavior, node execution, and output structure before introducing external services.
-
-**Portfolio evidence**
-
-- [Workflow Interface](LINK_TO_WORKFLOW_SCREENSHOT)
-- [Raw Workflow JSON](LINK_TO_WORKFLOW_JSON)
-
-**Design outcome:** Established a simple execution path to build on.
-
-### Phase 2 — Logic-Driven Branching
-
-**Purpose:** Explore conditional execution and routing.
-
-**Workflow concept**
-
+**Illustrative generated prompt**
 ```text
-Timed Trigger → Input Data → IF Condition
-                              ├── Match → Custom Layout
-                              └── No Match → Backup Path
+Create a polished interior-design moodboard centered on premium white and ivory rugs. Include a range of complementary neutral interiors, tactile rug close-ups, material details, and coordinated decor. Explore aesthetics such as Nordic minimalism, bohemian texture, modern luxury, and organic natural materials. Use a cohesive neutral palette, thoughtful editorial composition, and clear visual groupings suitable for design inspiration.
 ```
 
-A sample variable such as `weather: "sunny"` was used to explore how an IF condition could determine the next execution path.
+This is an illustrative example, not a recorded output from a particular workflow execution.
 
-**Design rationale**
+## 8. Error Handling and Failure Modes
 
-Not every input should follow the same path. Conditional logic provides a mechanism for routing tasks according to the data available.
+| Failure mode | Current behavior | Recommended improvement |
+|---|---|---|
+| AI Agent call fails | Retry configured up to 3 tries | Verify behavior in execution logs |
+| Empty AI output | Clean Prompt substitutes an empty string | Validate prompt and return a helpful error |
+| Special characters in prompt | Basic cleanup and truncation | Test safe JSON serialization |
+| Cloudflare request fails | No explicit recovery branch is shown | Add error handling and a clear failure response |
+| Image payload is missing | Python node raises `ValueError` | Return a safe diagnostic without exposing secrets |
+| Binary image is invalid | File metadata is constructed | Verify n8n binary format and test image opening |
+| Poor visual result | No automatic quality check is shown | Review sample outputs manually |
 
-**Portfolio evidence**
+The current behavior above is based on the supplied JSON; improvements are recommendations rather than implemented features.
 
-- [Workflow Interface](LINK_TO_BRANCHING_SCREENSHOT)
-- [Raw Workflow JSON](LINK_TO_BRANCHING_JSON)
+## 9. Evaluation Plan
 
-**Design outcome:** Explored conditional routing and the concept of a fallback execution path.
+The supplied workflow does not include automated evaluation or measured results. The following checks can be performed manually.
 
-*This was a workflow-logic experiment, not a claim that weather-based routing is part of the final moodboard agent.*
+### Functional tests
+- Submit a design idea through chat.
+- Confirm the AI Agent returns a non-empty prompt.
+- Confirm Clean Prompt produces the `prompt` field.
+- Confirm the Cloudflare request succeeds.
+- Confirm the response contains image data.
+- Confirm the final output opens as a valid image named `moodboard.jpg`.
 
-### Phase 3 — Context-Aware Prompt Engineering
+### Prompt-quality checks
+Review whether the prompt:
+- Matches the original user idea.
+- Describes a relevant style and color palette.
+- Includes useful material and texture details.
+- Mentions interior context and complementary decor.
+- Provides clear composition guidance.
+- Avoids unnecessary formatting or commentary.
 
-**Purpose:** Transform a short user input into a detailed creative brief.
+### Suggested test inputs
 
-**Workflow**
-
-```text
-Chat Input → AI Agent Instructions → Google Gemini → Expanded Prompt
-```
-
-The input `White Rug` was used to explore two prompt-generation strategies.
-
-#### Experiment A — Single-aesthetic concept
-
-**Input:** `White Rug`
-
-**Intended output:** A focused interior design moodboard prompt emphasizing premium white and ivory rugs, high-end textures, and minimalist lifestyle imagery.
-
-**Design approach**
-
-This strategy develops one cohesive visual direction. The prompt can elaborate on the subject through material details, texture, and lifestyle composition.
-
-**Evaluation question**
-
-Does a short input become a richer creative brief while retaining a consistent aesthetic?
-
-**Evidence**
-
-- [Generated Output](LINK_TO_SINGLE_STYLE_OUTPUT)
-- [Model Input and Output](LINK_TO_SINGLE_STYLE_LOGS)
-
-#### Experiment B — Multi-style matrix
-
-**Input:** `White Rug`
-
-**Intended output:** A moodboard concept titled *The White Rug Collection*, organized around five distinct aesthetics.
-
-| Style | Visual direction |
+| Test input | What to inspect |
 |---|---|
-| Nordic Minimalist | Raw wool and understated simplicity |
-| Boho Chic | Shag texture and fringe |
-| Modern Opulence | Silk-inspired textures and marble surroundings |
-| Organic Earthy | Cotton braids and natural materials |
-| Architectural Linear | Geometric forms and dimensional shadows |
+| `White Rug` | Whether the prompt adds useful design detail |
+| `Bohemian rugs, neutral tones` | Whether the bohemian style and neutral palette are represented |
+| `Minimalist dark green living room` | Whether the specific palette and room style are retained |
+| Empty input | Whether missing intent is handled clearly |
+| Long design description | Whether truncation preserves important details |
 
-**Design approach**
+Do not claim quality scores, success rates, latency, cost savings, or user impact without collected evidence.
 
-Rather than producing one cohesive aesthetic, this prompt explicitly defines multiple visual categories.
+## 10. Security and Privacy
 
-The structure encourages the model to treat each category as a distinct part of the composition, reducing the risk of blending incompatible design directions.
+- Rotate any Cloudflare token exposed in a workflow export or public repository.
+- Store secrets in n8n credentials or an approved secret manager.
+- Remove tokens and environment-specific details before publishing workflow JSON.
+- Validate user input before sending requests to external services.
+- Avoid logging secrets or unnecessarily retaining user prompts.
+- Disclose third-party model processing when appropriate for the workflow's audience.
 
-**Evaluation question**
+## 11. Known Limitations
 
-Can explicit grouping and style constraints produce a more organized multi-style concept than a general prompt?
+Based on the supplied workflow:
+- A multi-image generation strategy is not defined.
+- Product catalog and shopping integrations are not present.
+- Persistent image storage or moodboard history is not configured.
+- The AI Agent does not have a defined structured output schema.
+- Prompt cleanup is basic and does not fully validate input.
+- A dedicated HTTP error-handling branch is not shown.
+- Automated visual-quality evaluation is not implemented.
+- The final binary-data structure needs verification in the target n8n version.
+- Gemini model parameters are not specified in the JSON.
 
-**Evidence**
+## 12. Future Improvements
 
-- [Generated Output](LINK_TO_MULTI_STYLE_OUTPUT)
-- [Model Input and Output](LINK_TO_MULTI_STYLE_LOGS)
+1. Add input validation for empty or overly long messages.
+2. Use robust structured JSON construction for API requests.
+3. Define a predictable output format for the AI Agent.
+4. Validate Cloudflare responses before constructing binary output.
+5. Add explicit error handling for model, API, and file-conversion failures.
+6. Create a repeatable set of prompts for manual evaluation.
+7. Allow users to refine the moodboard through follow-up instructions.
+8. Move all secrets out of exported workflow JSON.
+9. Add optional storage so users can revisit generated moodboards.
 
-**Design outcome:** Explored the trade-off between a single cohesive aesthetic and a multi-style exploration framework.
+## 13. Definition of Done
 
----
+- [ ] A user can submit a design idea through the chat trigger.
+- [ ] The AI Agent returns a relevant, detailed prompt.
+- [ ] Clean Prompt returns a non-empty `prompt` field.
+- [ ] The Cloudflare endpoint returns an image response.
+- [ ] The final node outputs a valid, viewable image.
+- [ ] The output filename is `moodboard.jpg`.
+- [ ] Failure cases are tested.
+- [ ] No live API token or secret is included in the public repository.
 
-### Phase 4 — End-to-End Moodboard Agent
+## 14. Conclusion
 
-**Purpose:** Connect prompt generation to image generation and return a final visual artifact.
+This project demonstrates an end-to-end generative AI workflow connecting conversational input, LLM-based prompt enrichment, lightweight Python processing, external image generation, and binary file packaging.
 
-**Workflow**
-
-```text
-Chat Trigger
-     ↓
-Gemini Prompt Builder
-     ↓
-Script-Based Prompt Processing
-     ↓
-Image-Generation API
-     ↓
-Image Response Processing
-     ↓
-Downloadable Moodboard
-```
-
-**Key design decision**
-
-The prompt-processing stage separates language-model output from the input expected by the image-generation API.
-
-This is important because generated text may contain formatting or additional structure that does not match the downstream service's input requirements.
-
-**Expected output**
-
-A generated image returned as a downloadable `moodboard.jpg`.
-
-**Evidence**
-
-- [Workflow Blueprint](LINK_TO_FINAL_WORKFLOW)
-- [Execution Logs](LINK_TO_EXECUTION_LOGS)
-- [Generated Moodboard](LINK_TO_FINAL_MOODBOARD)
-
-**Implementation detail to verify:** Earlier lab notes describe Python-based prompt processing, while the current phase notes describe a JavaScript sanitizer and mention Hugging Face FLUX. Confirm the actual script language and configured image-generation provider before publishing these as final implementation details.
+Its main strength is integrating these steps into one repeatable n8n workflow. The next priorities are securing credentials, improving request construction, verifying binary output, and testing successful and failed executions.
 
 ---
 
-## 7. Prompt Design Strategy
-
-The prompt-generation stage is responsible for converting a short request into a richer description suitable for image generation.
-
-### Proposed prompt structure
-
-A structured creative brief can be organized around these dimensions:
-
-| Dimension | Purpose | Example |
-|---|---|---|
-| Subject | Preserve the user's main idea. | White rug |
-| Aesthetic | Define the visual style. | Nordic Minimalist |
-| Material | Describe the surface or construction. | Raw wool |
-| Texture | Add tactile visual detail. | Soft, textured fibers |
-| Setting | Establish the surrounding environment. | Bright, minimal living room |
-| Composition | Describe the arrangement. | Product close-up and wider interior view |
-| Mood | Set the visual atmosphere. | Calm, understated, premium |
-
-This table is a design framework for describing the prompt. It should not be interpreted as a confirmed output schema unless the implementation explicitly uses these fields.
-
-### Two prompt strategies
-
-| Strategy | Strength | Trade-off |
-|---|---|---|
-| Single-aesthetic prompt | Supports a more cohesive visual direction. | Explores fewer alternatives in one generation. |
-| Multi-style prompt | Supports broader creative exploration. | Requires clear grouping and composition constraints. |
-
-The appropriate strategy depends on whether the user wants a focused visual concept or inspiration across multiple aesthetics.
-
----
-
-## 8. Input, Processing & Output Contracts
-
-Defining component contracts makes the workflow easier to test and maintain.
-
-| Stage | Input | Expected output |
-|---|---|---|
-| Chat Trigger | User's design request | Captured input text |
-| Gemini Prompt Builder | Original design request | Expanded image-generation prompt |
-| Prompt Processor | Generated prompt | Processed prompt text |
-| Image-Generation API | Processed prompt | Image-generation response |
-| Response Processor | API response | Image artifact or image data |
-| Output Stage | Processed image | Downloadable moodboard |
-
-These are the intended data contracts. Exact n8n node fields and API response schemas should be added after inspecting the actual workflow configuration.
-
----
-
-## 9. Failure Modes & Design Considerations
-
-The following are risks to address or verify during testing.
-
-| Potential failure | Design consideration |
-|---|---|
-| Empty or unclear user input | Validate input before prompt generation. |
-| Prompt loses the original subject | Check that the expanded prompt preserves the core intent. |
-| Generated prompt contains unwanted formatting | Normalize the prompt before passing it downstream. |
-| Image-generation API returns an error | Add appropriate error handling and user feedback. |
-| API response has an unexpected format | Validate the response before image processing. |
-| Image artifact is unavailable | Confirm the output is accessible before returning it. |
-| Multi-style output mixes categories | Strengthen grouping, layout, and style constraints in the prompt. |
-
-These are design considerations, not assertions that each failure has already been encountered or that mitigation is already implemented.
-
----
-
-## 10. Evaluation Plan
-
-The next stage is to evaluate both workflow correctness and output quality.
-
-### Workflow validation
-
-- Does each stage receive the expected input?
-- Does the workflow complete an end-to-end run?
-- Is the image-generation response processed correctly?
-- Can the user access the final moodboard?
-- What happens when a service fails?
-
-### Prompt and image evaluation
-
-- Does the prompt preserve the original design idea?
-- Does the generated concept follow the intended aesthetic?
-- Are the visual details relevant to the request?
-- Are different styles clearly distinguishable in the multi-style experiment?
-- Is the generated moodboard useful as a starting point for creative exploration?
-
-### Suggested test set
-
-| Test case | Input | Focus |
-|---|---|---|
-| Basic | `White Rug` | Prompt expansion |
-| Style-specific | `Minimalist ivory rug` | Style adherence |
-| Material-specific | `Natural wool rug` | Material and texture |
-| Ambiguous | `Something cozy` | Interpretation of vague intent |
-| Empty input | Empty string | Input validation |
-| API failure | Simulated service error | Failure handling |
-
-Record actual observations and results after running these tests. Do not report quality scores, reliability percentages, latency, or cost without measurement.
-
----
-
-## 11. Future Improvements
-
-The following improvements are potential next steps rather than confirmed capabilities.
-
-**Prompt quality**
-- Standardize the prompt structure.
-- Compare single-style and multi-style outputs using the same evaluation rubric.
-- Test whether additional constraints improve visual consistency.
-
-**Workflow reliability**
-- Validate input and API response formats.
-- Improve failure handling and error messages.
-- Verify image artifact integrity before returning it.
-
-**User experience**
-- Explore a user-facing style selector.
-- Allow users to refine their creative direction.
-- Investigate whether users prefer one cohesive moodboard or several alternative styles.
-
-**Product validation**
-- Test the prototype with representative users.
-- Collect qualitative feedback about output usefulness.
-- Establish baseline metrics before defining performance targets.
-
----
-
-## 12. Implementation Status
-
-| Capability | Status based on lab notes |
-|---|---|
-| Basic n8n workflow validation | Attempted and documented |
-| Conditional branching experiment | Explored |
-| Gemini prompt-generation experiment | Explored |
-| Single-aesthetic prompt variant | Explored |
-| Multi-style prompt variant | Explored |
-| End-to-end image-generation workflow | Described as assembled; verify with a successful run |
-| Downloadable moodboard output | Intended output; include evidence of a successful download |
-| Formal evaluation results | Not yet documented |
-| User research and outcome validation | Proposed |
-
-Update this table as you verify each capability and add links to the supporting evidence.
-
----
-
-## 13. Conclusion
-
-Lab 01 explores the design of a generative AI agent through incremental workflow development.
-
-The project progresses from validating basic automation to experimenting with conditional routing, designing structured prompts, and connecting language-model output to image generation.
-
-The main design insight is the value of separating **workflow orchestration, prompt generation, prompt processing, and image generation** into identifiable stages.
-
-This separation provides a practical foundation for debugging, evaluating, and improving the agent as the prototype evolves.
-
----
-
-## 🔗 Related Artifacts
-
-- [Product Requirements Document](./PRD.md)
-- [Workflow Screenshot](LINK_TO_WORKFLOW_SCREENSHOT)
-- [Workflow JSON](LINK_TO_WORKFLOW_JSON)
-- [Prompt Experiment Outputs](LINK_TO_PROMPT_EXAMPLES)
-- [Final Moodboard](LINK_TO_MOODBOARD_IMAGE)
-
+**Implementation reference:** This document is based on the n8n workflow JSON provided for the Moodboard AI Agent. Verify runtime behavior in n8n before describing the workflow as production-ready.
