@@ -38,6 +38,8 @@ flowchart TD
 
  ![AI-generated Moodboard](images/MoodBoardAgent.png)
 
+ 
+
 | Stage | Component | Responsibility |
 |---|---|---|
 | 1 | Chat Trigger | Accepts a design idea |
@@ -67,7 +69,7 @@ The agent is instructed to emphasize style, color palettes, textures, styled int
 
 **Expected prompt direction:** A cohesive bohemian interior moodboard featuring neutral colors, layered textiles, natural materials, rug textures, and complementary decor.
 
-**[PLACEHOLDER: Insert your generated moodboard image here]**
+![AI-generated Image](images/MoodBoardAgent.png)
 
 `![Generated Moodboard](images/moodboard.png)`
 
