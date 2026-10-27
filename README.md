@@ -1,6 +1,6 @@
-# Wayfair AI Agent Engineering for Business Intelligence
+# Wayfair n8n AI Agent Engineering Externship
 
-![Status](https://shields.io)
+![Project Status](https://img.shields.io/badge/Project-In_Progress-yellow)
 
 This repository documents an 8-week technical externship focused on building autonomous AI agents to solve high-scale e-commerce challenges for **Wayfair**.
 
