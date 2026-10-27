@@ -120,8 +120,9 @@ It then prepares an output item containing:
 - **Image data:** The returned Base64 string in the configured binary output field.
 
 This node pulls the image out of that JSON and rebuilds it as a proper moodboard.jpg file you can open and download.
+![Moodboard Image](images/moodboard.jpg)
 
-`![Generated Moodboard](images/MoodBoardAgent.png)`
+`![Generated Moodboard](Artifacts/images/moodboard.jpg)`
 
 ## Summary
 
