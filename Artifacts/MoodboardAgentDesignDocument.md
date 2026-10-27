@@ -31,9 +31,8 @@ flowchart TD
     style R fill:#e8f1ff,stroke:#5284c4
 ```
 
-**[PLACEHOLDER: Insert full n8n workflow screenshot here]**
+### ![AI-generated Moodboard](images/MoodBoardAgent.png)
 
-`![n8n Workflow Screenshot](images/workflow-screenshot.png)`
 
 ## 2. Agent Workflow and Responsibilities
 
