@@ -15,6 +15,8 @@ This repository documents an 8-week technical externship focused on building aut
 
 * **Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)
 
+* **PromptGenerator:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)
+
 * **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)
 
 * **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)
