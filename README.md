@@ -1,3 +1,101 @@
+# Wayfair — AI Agent Engineering Externship
+
+**Product:** AI-Powered Market Intelligence System | **Focus:** Trend Discovery, Competitive Intelligence & Workflow Automation | **Role:** AI Agent Engineering Extern
+
+I worked on building AI-powered agents and automated workflows using n8n to address e-commerce challenges for Wayfair. The project spans visual moodboard generation, market trend discovery, competitor benchmarking, AI-generated insights, and a unified market intelligence dashboard.
+
+The goal is to transform fragmented product and market data into structured insights and visual outputs that support business decision-making.
+
+---
+
+## 🔎 The Product Workflow
+
+Style Prompt → Moodboard Generation → Market Trend Discovery → Competitor Benchmarking → AI Insights & Content Generation → Unified Market Intelligence Dashboard
+
+---
+
+## 💡 Project Milestones & Capabilities
+
+| Project | Core Focus | Intended Outcome |
+| :--- | :--- | :--- |
+| **1. Moodboard Agent** | Convert style prompts into visual outputs. | Support visual exploration and creative ideation. |
+| **2. Market Trend Discovery Agent** | Collect and analyze product and social media data. | Identify emerging trends and potential market opportunities. |
+| **3. Competitor Monitoring Agent** | Track competitor product launches and pricing. | Identify competitive gaps and market whitespace. |
+| **4. AI Insight & Content Agent** | Use Gemini to transform research signals into insights and content ideas. | Generate campaign concepts and marketing content. |
+| **5. Market Intelligence Dashboard** | Organize findings in an auto-updating Google Sheets dashboard. | Make market intelligence easier to review and use. |
+
+---
+
+## 🎯 Target Users
+
+- **Primary:** Business and product teams evaluating market trends and product opportunities.
+- **Secondary:** Creative, marketing, merchandising, and supply chain teams using trend insights, competitor data, and structured reports.
+
+*The exact primary user should be confirmed with the project stakeholders, particularly for the final dashboard.*
+
+---
+
+## ⚠️ Problems Addressed
+
+- **Fragmented market data:** Product and social signals are spread across multiple sources.
+- **Manual research:** Collecting and organizing market information takes time.
+- **Limited competitor visibility:** Pricing and product launches require ongoing monitoring.
+- **Unstructured insights:** Raw data needs to be transformed into useful trends, visual concepts, and content.
+- **Scattered reporting:** Teams need a consistent way to access and review findings.
+
+---
+
+## 🚀 Technical Implementation
+
+- **AI Agent Orchestration:** Built multi-step workflows using n8n.
+- **LLM Integration:** Used Google Gemini and explored Mistral for prompt engineering and model benchmarking.
+- **Data Processing:** Automated data collection, attribute extraction, classification, and structured output processing.
+- **Generative Media:** Integrated FLUX through Hugging Face for AI-generated visual assets.
+- **Dashboard Automation:** Used the Google Sheets API to organize and present workflow outputs.
+- **Infrastructure:** Ran n8n in a Docker-based local environment.
+
+---
+
+## 📊 Success Metrics
+
+| Metric | What It Measures |
+| :--- | :--- |
+| **Idea Value Rate** | Percentage of generated insights that stakeholders consider useful. |
+| **Opportunity Adoption** | Percentage of identified opportunities selected for further evaluation. |
+| **Sales Impact** | Sales associated with opportunities identified and pursued through the system. |
+| **Research Time Saved** | Reduction in manual research and reporting effort. |
+| **Data & Classification Accuracy** | Correctness of collected data, product attributes, and trend classifications. |
+| **Workflow Reliability** | Successful execution and completeness of automated workflows. |
+
+These metrics provide a proposed evaluation framework; actual targets and business impact should be established through testing and stakeholder feedback.
+
+---
+
+## 📁 Project Artifacts & Deliverables
+
+- Moodboard Agent design document, PRD, and demo.
+- Market Trend Discovery Agent.
+- Competitor Monitoring Agent.
+- AI Insight & Content Agent.
+- Unified Market Intelligence Dashboard prototype.
+- n8n workflow JSON files and implementation artifacts.
+- Google Sheets reporting integration.
+- Technical documentation and project demonstrations.
+
+---
+
+## 🎯 Key Learnings
+
+- **Agentic Workflow Design:** Break complex business tasks into coordinated, reusable AI workflows.
+- **Prompt Engineering:** Design and refine prompts for consistent, task-specific model outputs.
+- **Data Engineering:** Transform unstructured market signals into structured information.
+- **Human-Centered Product Thinking:** Connect AI-generated insights to stakeholder needs and business decisions.
+- **Workflow Reliability:** Use logging, merging, error handling, and containerized infrastructure to support dependable automation.
+
+
+
+
+
 # Wayfair n8n AI Agent Engineering Externship
 
 ![Project Status](https://img.shields.io/badge/Project-In_Progress-yellow)
