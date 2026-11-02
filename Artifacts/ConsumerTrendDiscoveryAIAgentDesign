@@ -1,4 +1,4 @@
-# Moodboard AI Agent — Design Document
+# Moodboard AI Agent — Design Document.
 
 **Architecture:** n8n + Google Gemini + Cloudflare Workers AI  
 **Status:** Prototype
