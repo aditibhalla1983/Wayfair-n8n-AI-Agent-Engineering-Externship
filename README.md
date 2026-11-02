@@ -16,13 +16,13 @@ Style Prompt → Moodboard Generation → Market Trend Discovery → Competitor 
 
 ## 💡 Project Milestones & Capabilities
 
-| Project | Core Focus | Intended Outcome |
-| :--- | :--- | :--- |
-| **1. Moodboard Agent** | Convert style prompts into visual outputs. | Support visual exploration and creative ideation. |
-| **2. Market Trend Discovery Agent** | Collect and analyze product and social media data. | Identify emerging trends and potential market opportunities. |
-| **3. Competitor Monitoring Agent** | Track competitor product launches and pricing. | Identify competitive gaps and market whitespace. |
-| **4. AI Insight & Content Agent** | Use Gemini to transform research signals into insights and content ideas. | Generate campaign concepts and marketing content. |
-| **5. Market Intelligence Dashboard** | Organize findings in an auto-updating Google Sheets dashboard. | Make market intelligence easier to review and use. |
+| Project | Core Focus | Intended Outcome | Artifacts
+| :--- | :--- | :--- | :---
+| **1. Moodboard Agent** | Convert style prompts into visual outputs. | Support visual exploration and creative ideation. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg) |
+| **2. Market Trend Discovery Agent** | Collect and analyze product and social media data. | Identify emerging trends and potential market opportunities. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)|
+| **3. Competitor Monitoring Agent** | Track competitor product launches and pricing. | Identify competitive gaps and market whitespace. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)|
+| **4. AI Insight & Content Agent** | Use Gemini to transform research signals into insights and content ideas. | Generate campaign concepts and marketing content. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)|
+| **5. Market Intelligence Dashboard** | Organize findings in an auto-updating Google Sheets dashboard. | Make market intelligence easier to review and use. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)| 
 
 ---
 
