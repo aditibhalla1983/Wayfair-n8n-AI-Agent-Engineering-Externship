@@ -1,0 +1,1710 @@
+{
+  "name": "Competitor Monitoring Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "637d206e-7d24-43be-83ec-bff0172ea061",
+      "name": "When chat message received",
+      "webhookId": "d07c0e51-1fbd-4360-ac69-c795770b7e6b"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// UNIFIED INPUT PARSER - Chat + Evaluation\n\nconst input = $input.first().json;\n\n// Identify which trigger supplied the input\nconst evaluationMode =\n  typeof input.chatInput !== 'string';\n\n// Get the appropriate input text\nconst rawInput = evaluationMode\n  ? String(input.product_category || '')\n  : input.chatInput;\n\nconst normalizedInput = rawInput\n  .toLowerCase()\n  .replace(/[_-]/g, ' ');\n\nconst categories = [\n  {\n    key: 'area_rug',\n    displayName: 'Area Rug',\n    patterns: ['area rug', 'area rugs']\n  },\n  {\n    key: 'outdoor_rug',\n    displayName: 'Outdoor Rug',\n    patterns: ['outdoor rug', 'outdoor rugs', 'patio rug', 'patio rugs']\n  },\n  {\n    key: 'hallway_runner',\n    displayName: 'Hallway Runner',\n    patterns: ['hallway runner', 'runner rug', 'hall runner', 'runners', 'hallway runners']\n  },\n  {\n    key: 'shag_rug',\n    displayName: 'Shag Rug',\n    patterns: ['shag rug', 'shag rugs', 'shaggy rug', 'shaggy rugs']\n  }\n];\n\nlet detectedCategory = null;\n\nfor (const cat of categories) {\n  if (cat.patterns.some(pattern =>\n    normalizedInput.includes(pattern)\n  )) {\n    detectedCategory = cat;\n    break;\n  }\n}\n\n// Focus keyword applies to chat input\n\nconst focusMatch = evaluationMode\n  ? null\n  : rawInput.match(/focus\\s*:\\s*([^\\n]+)/i);\n\nconst focus = focusMatch\n  ? focusMatch[1].trim()\n  : String($('Evaluation Trigger').first().json.TestFocus|| '').trim();\n\nconst hasCategory = !!detectedCategory;\n\nreturn [{\n  json: {\n    // Preserve existing research parser fields\n    category: detectedCategory?.key || null,\n    categoryKey: detectedCategory?.key || null,\n    categoryDisplayName: detectedCategory?.displayName || null,\n    focus,\n    hasValidInput: hasCategory,\n    errorReason: hasCategory ? null : 'no_category',\n    originalInput: rawInput,\n    parsedAt: new Date().toISOString(),\n\n    // Evaluation fields\n    evaluation_mode: evaluationMode,\n    test_id: evaluationMode ? input.test_id : null,\n    expected_sections: evaluationMode\n      ? input.expected_sections\n      : null,\n    product_category: evaluationMode\n      ? input.product_category\n      : detectedCategory?.displayName || null\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "c1e39986-10f2-4234-96cf-017393c6cc9c",
+      "name": "InputParser"
+    },
+    {
+      "parameters": {
+        "content": "## Stage1 : Input\n\nParses your chat message to detect the Rug Category and optional focus keyword.\nSupported Category: Area Rug , Outdoor Rug , Halfway Runner , Shag Rug",
+        "height": 400,
+        "width": 640,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -112,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "cf9f94fa-cb6c-4a10-8bc0-72729e165e02",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Stage 2: Wayfair Products\n\nFetches upto 10 wayfair products for the selected category",
+        "height": 304,
+        "width": 688,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        640,
+        -384
+      ],
+      "typeVersion": 1,
+      "id": "33afb3f0-8047-45b6-9c5b-793854f88d08",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reshape FastAPI response to the legacy shape that downstream consumers expect.\nconst r = $input.first().json;\nconst products = r.products || [];\nreturn [{\n  json: {\n    wayfair_products: products.map(p => ({\n      url: p.url,\n      name: p.name,\n      price: p.price,\n      details: p.details || [],\n      pattern: p.pattern || '',\n      image_url: p.image_url || '',\n      rating: p.rating || '',\n      review_count: p.review_count || '',\n      scraped_at: r.scraped_at || new Date().toISOString(),\n    })),\n    totalWayfair: products.length,\n    totalProducts: products.length,\n    scrapedAt: r.scraped_at || new Date().toISOString(),\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        -272
+      ],
+      "id": "92bac2bf-9684-4972-9a25-c83c6b2b4486",
+      "name": "Reshape Wayfair Response"
+    },
+    {
+      "parameters": {
+        "content": "## Stage 3: AMAZON PRODUCTS\nFetches upto 10 Amazon products for the selected category",
+        "height": 256,
+        "width": 688,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        640,
+        -64
+      ],
+      "typeVersion": 1,
+      "id": "19bf391b-1aa7-41f0-89f3-d310ba0ac808",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Stage 4: WALMART PRODUCTS\n\nFetches upto 10 walmart products for the selected category",
+        "height": 272,
+        "width": 688,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        640,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "6f341fc9-2ddc-4a61-9cba-61ffadb1ed82",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reshape FastAPI response to the legacy shape that downstream consumers expect.\nconst r = $input.first().json;\nconst products = r.products || [];\nreturn [{\n  json: {\n    amazonProducts: products.map(p => ({\n      url: p.url,\n      name: p.name,\n      price: p.price,\n      details: p.details || [],\n      pattern: p.pattern || '',\n      image_url: p.image_url || '',\n      rating: p.rating || '',\n      review_count: p.review_count || '',\n      scraped_at: r.scraped_at || new Date().toISOString(),\n    })),\n    totalAmazonProducts: products.length,\n    totalProducts: products.length,\n    scrapedAt: r.scraped_at || new Date().toISOString(),\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        32
+      ],
+      "id": "38f04777-5438-460a-b2e0-abcfa50986b9",
+      "name": "Reshape Amazon Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reshape FastAPI response to the legacy shape that downstream consumers expect.\nconst r = $input.first().json;\nconst products = r.products || [];\nreturn [{\n  json: {\n    walmartProducts: products.map(p => ({\n      url: p.url,\n      name: p.name,\n      price: p.price,\n      details: p.details || [],\n      pattern: p.pattern || '',\n      image_url: p.image_url || '',\n      rating: p.rating || '',\n      review_count: p.review_count || '',\n      scraped_at: r.scraped_at || new Date().toISOString(),\n    })),\n    totalWalmartProducts: products.length,\n    totalProducts: products.length,\n    scrapedAt: r.scraped_at || new Date().toISOString(),\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        336
+      ],
+      "id": "1c62d5e8-c067-452a-884a-29a6d079062e",
+      "name": "Reshape Walmart Response"
+    },
+    {
+      "parameters": {
+        "url": "http://34.196.186.128:8000/api/products/wayfair",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "category",
+              "value": "={{ $('InputParser').item.json.categoryKey }}"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        864,
+        -272
+      ],
+      "id": "085367f0-2716-4192-987b-90513c82d44f",
+      "name": "Fetch Wayfair Products",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "http://34.196.186.128:8000/api/products/amazon",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "category",
+              "value": "={{ $('InputParser').item.json.categoryKey }}"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        864,
+        32
+      ],
+      "id": "2afefa7a-bb3c-4046-9158-27f9cf56105e",
+      "name": "Fetch Amazon Products",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "http://34.196.186.128:8000/api/products/walmart",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "category",
+              "value": "={{ $('InputParser').item.json.categoryKey }}"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        864,
+        336
+      ],
+      "id": "57fa0058-a9da-4ed8-8dbd-94327067d8bd",
+      "name": "Fetch Walmart Products",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1792,
+        -48
+      ],
+      "id": "51866336-26c9-4836-bc26-608f7123c6c0",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "content": "## Stage 5: AI Anlaysis & Report Generation\n\nSix AI Agents work sequentially to write each section of the Report.\n\n- Executive Summary with key competitive insights\n- Scope of Research section\n- Amazon & Walmart Competitor Analysis\n- Side-by-Side Comparison tables\n- Pricing Insights & Whitespace Analysis\n- Strategic Recommendations",
+        "height": 880,
+        "width": 4080
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1648,
+        -384
+      ],
+      "typeVersion": 1,
+      "id": "b9e755ed-7847-4317-9fd1-605380e0d346",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// SCOPE GENERATOR - No AI, just JavaScript\n// Generates Section 2: Scope of Research\n\n// Keep product link labels short instead of displaying full SEO titles\nfunction shortProductName(p) {\n  const title = String(p.name || p.title || 'View product')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  const words = title.split(' ');\n  return words.length > 7\n    ? words.slice(0, 7).join(' ') + '…'\n    : title;\n}\n\nconst wayfairData = $('Reshape Wayfair Response').first().json;\nconst amazonData = $('Reshape Amazon Response').first().json;\nlet walmartData = {};\ntry { walmartData = $('Reshape Walmart Response').first().json || {}; } catch(e) {}\nconst inputData = $('InputParser').first().json;\n\nconst category = inputData.categoryDisplayName || 'Rugs';\nconst verifiedStats = $('VerifiedSatsCalculator').first().json.verifiedStats || {};\nconst amazonProductCount = verifiedStats.amazon?.productCount ?? amazonData.amazonProducts?.length ?? 0;\nconst wayfairProductCount = verifiedStats.wayfair?.productCount ?? wayfairData.wayfair_products?.length ?? 0;\nconst walmartProductCount = verifiedStats.walmart?.productCount ?? walmartData.walmartProducts?.length ?? 0;\n\n\nconst scopeHtml = `\n<section class=\"scope-section\">\n  <h2>Scope of Research</h2>\n  <div class=\"scope-grid\">\n    <div class=\"scope-card\">\n      <h4>Category Analyzed</h4>\n      <p class=\"scope-value\">${category}</p>\n    </div>\n    <div class=\"scope-card\">\n      <h4>Competitors Reviewed</h4>\n      <ul>\n        <li><strong>Amazon</strong> - ${amazonProductCount} products analyzed</li>\n        <li><strong>Walmart</strong> - ${walmartProductCount} products analyzed</li>\n        <li><strong>Wayfair</strong> - ${wayfairProductCount} products (baseline)</li>\n      </ul>\n    </div>\n    <div class=\"scope-card\">\n  <h4>Data Sources & Products Reviewed</h4>\n\n  <details>\n    <summary>Amazon (${amazonProductCount} products)</summary>\n    <ol>\n      ${amazonData.amazonProducts.map(p =>\n        `<li><a href=\"${p.url}\" target=\"_blank\" rel=\"noopener noreferrer\">${shortProductName(p)}</a></li>`\n      ).join('')}\n    </ol>\n  </details>\n\n  <details>\n    <summary>Walmart (${walmartProductCount} products)</summary>\n    <ol>\n      ${walmartData.walmartProducts.map(p =>\n        `<li><a href=\"${p.url}\" target=\"_blank\" rel=\"noopener noreferrer\">${shortProductName(p)}</a></li>`\n      ).join('')}\n    </ol>\n  </details>\n\n  <details>\n    <summary>Wayfair (${wayfairProductCount} products)</summary>\n    <ol>\n      ${wayfairData.wayfair_products.map(p =>\n        `<li><a href=\"${p.url}\" target=\"_blank\" rel=\"noopener noreferrer\">${shortProductName(p)}</a></li>`\n      ).join('')}\n    </ol>\n  </details>\n</div>\n    <div class=\"scope-card\">\n      <h4>Report Generated</h4>\n      <p class=\"scope-value\">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>\n    </div>\n  </div>\n</section>\n`;\n\nreturn [{\n  json: {\n    section: 'scope',\n    html: scopeHtml,\n    metadata: {\n      category,\n      amazonProductCount,\n      walmartProductCount,\n      wayfairProductCount,\n      generatedAt: new Date().toISOString()\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        -48
+      ],
+      "id": "e550f7be-119c-4270-a140-6b6ec4574748",
+      "name": "ScopeGeneratorNode"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        -48
+      ],
+      "id": "1368abb0-decc-465d-ac74-7404ff53753b",
+      "name": "WaitAfterScope",
+      "webhookId": "d4ebe406-6fdd-4d28-935a-20353e9034c3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CATEGORY: {{ $('InputParser').first().json.categoryDisplayName }}\n\nVERIFIED SUMMARY STATS (SINGLE SOURCE OF TRUTH — DO NOT RECALCULATE):\n{{ JSON.stringify($('VerifiedSatsCalculator').first().json.verifiedStats, null, 2) }}\n\n\nWAYFAIR PRODUCTS:\n{{ JSON.stringify($('Reshape Wayfair Response').first().json.wayfair_products?.slice(0, 10), null, 2) }}\n\nAMAZON COMPETITOR DATA:\n{{ JSON.stringify($('Reshape Amazon Response').first().json.amazonProducts?.slice(0, 10), null, 2) }}\n\nWALMART COMPETITOR DATA:\n{{ JSON.stringify($('Reshape Walmart Response').first().json.walmartProducts?.slice(0, 10), null, 2) }}",
+        "options": {
+          "systemMessage": "=You are a senior competitive analyst writing an Executive Summary for Wayfair's strategy team.\n\nTASK: Write a compelling Executive Summary comparing Wayfair vs Amazon and Walmart in this rug category.\n\nREQUIREMENTS:\n1. Lead with the single most important competitive insight\n2. Include 5-6 key bullet points covering:\n   - Price positioning (Wayfair vs Amazon vs Walmart)\n   - Product assortment differences across all three\n   - Rating/review comparison\n   - Key competitive advantage for Wayfair\n   - Walmart-specific opportunities or threats\n   - Main strategic opportunity\n3. Add a \"Strategic Implications\" paragraph (2-3 sentences)\n4. Always use the exact numbers from VERIFIED STATS for product counts, price ranges, average prices, ratings, and review totals; never recalculate or estimate them.\n\n\nOUTPUT FORMAT (HTML only, no markdown):\n<section class=\"executive-summary\">\n  <h2>Executive Summary</h2>\n  <div class=\"summary-hero\">\n    <div class=\"key-insight\">\n      <span class=\"label\">Key Competitive Insight</span>\n      <p>[Single most important finding about Wayfair vs Amazon vs Walmart]</p>\n    </div>\n  </div>\n  <div class=\"summary-points\">\n    <h3>Key Findings</h3>\n    <ul>\n      <li><strong>[Topic]:</strong> [Insight]</li>\n    </ul>\n  </div>\n  <div class=\"strategic-implications\">\n    <h3>Strategic Implications</h3>\n    <p>[What this means for Wayfair's strategy]</p>\n  </div>\n</section>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2464,
+        -48
+      ],
+      "id": "9e497d88-93b0-46ff-ab21-71291c1f0f57",
+      "name": "ExecuteSummaryGenerator"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        112
+      ],
+      "id": "c12544d4-80b3-47e1-aad4-04764d49327e",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2832,
+        -48
+      ],
+      "id": "b8de895e-bf52-4345-bc7f-98fda3dfd45e",
+      "name": "WaitAfterExecutive",
+      "webhookId": "150ac209-cc6c-41bb-944a-19c59b727cb7"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2928,
+        160
+      ],
+      "id": "ee89d1cd-9f1c-4eb7-9755-b134500b278f",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3424,
+        -48
+      ],
+      "id": "80dc2464-fdd2-444a-a938-dd4bdf904a0f",
+      "name": "WaitAfterAmazon",
+      "webhookId": "5bd0c7e0-b38a-489e-ad7c-6a308e041734"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CATEGORY: {{ $('InputParser').first().json.categoryDisplayName }}\n\nVERIFIED STATS:\n{{ JSON.stringify($('VerifiedSatsCalculator').first().json.verifiedStats) }}\n\n\nWAYFAIR PRODUCTS:\n{{ JSON.stringify($('Reshape Wayfair Response').first().json.wayfair_products?.slice(0, 10), null, 2) }}\n\nAMAZON PRODUCTS:\n{{ JSON.stringify($('Reshape Amazon Response').first().json.amazonProducts?.slice(0, 10), null, 2) }}\n\nWALMART PRODUCTS:\n{{ JSON.stringify($('Reshape Walmart Response').first().json.walmartProducts?.slice(0, 10), null, 2) }}",
+        "options": {
+          "systemMessage": "=You are a competitive intelligence analyst. Create a side-by-side comparison of Wayfair vs Amazon vs Walmart.\n\nTASK: Create a comprehensive three-way Competitor Comparison table with clear winner indicators.\n\n  COMPARE THESE ATTRIBUTES:\n  1. Price Positioning (avg, min, max for each)\n  2. Product Variety/Count\n  3. Rating Distribution\n  4. Feature Highlights\n  5. Size/Color Options\n  6. Shipping/Delivery\n\n  OUTPUT FORMAT (HTML only, no markdown):\n  <section class=\"competitor-comparison\">\n    <h2>Side-by-Side Comparison</h2>\n    <table class=\"comparison-table\">\n      <thead>\n        <tr>\n          <th>Attribute</th>\n          <th>Wayfair</th>\n          <th>Amazon</th>\n          <th>Walmart</th>\n          <th>Winner</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td><strong>Price Positioning</strong></td>\n          <td>\n            Avg: $[X]<br>\n            Min: $[X]<br>\n            Max: $[X]\n          </td>\n          <td>\n            Avg: $[X]<br>\n            Min: $[X]<br>\n            Max: $[X]\n          </td>\n          <td>\n            Avg: $[X]<br>\n            Min: $[X]<br>\n            Max: $[X]\n          </td>\n          <td class=\"winner\"><span class=\"winner-badge [winner-class]\">[Winner Name]</span></td>\n        </tr>\n        <tr>\n          <td><strong>Product Variety</strong></td>\n          <td>\n            [X] products<br>\n            Brands: [list]<br>\n            Styles: [list]\n          </td>\n          <td>\n            [X] products<br>\n            Brands: [list]<br>\n            Styles: [list]\n          </td>\n          <td>\n            [X] products<br>\n            Brands: [list]<br>\n            Styles: [list]\n          </td>\n          <td class=\"winner\"><span class=\"winner-badge [winner-class]\">[Winner Name]</span></td>\n        </tr>\n        <tr>\n          <td><strong>Avg Rating</strong></td>\n          <td>[X] / 5 stars<br>([X] - [X] reviews)</td>\n          <td>[X] / 5 stars<br>([X] - [X] reviews)</td>\n          <td>[Data if available or \"N/A\"]</td>\n          <td class=\"winner\"><span class=\"winner-badge [winner-class]\">[Winner Name]</span></td>\n        </tr>\n        <tr>\n          <td><strong>Key Features</strong></td>\n          <td>\n            <ul>\n              <li>[Feature 1]</li>\n              <li>[Feature 2]</li>\n              <li>[Feature 3]</li>\n            </ul>\n          </td>\n          <td>\n            <ul>\n              <li>[Feature 1]</li>\n              <li>[Feature 2]</li>\n              <li>[Feature 3]</li>\n            </ul>\n          </td>\n          <td>\n            <ul>\n              <li>[Feature 1]</li>\n              <li>[Feature 2]</li>\n              <li>[Feature 3]</li>\n            </ul>\n          </td>\n          <td class=\"winner\"><span class=\"winner-badge [winner-class]\">[Winner or \"Tie\"]</span></td>\n        </tr>\n        <tr>\n          <td><strong>Size Options</strong></td>\n          <td>[Description of size range]</td>\n          <td>[Description of size range]</td>\n          <td>[Description of size range]</td>\n          <td class=\"winner\"><span class=\"winner-badge [winner-class]\">[Winner Name]</span></td>\n        </tr>\n        <tr>\n          <td><strong>Shipping</strong></td>\n          <td>[Shipping info]</td>\n          <td>[Shipping info]</td>\n          <td>[Shipping info]</td>\n          <td class=\"winner\"><span class=\"winner-badge [winner-class]\">[Winner Name]</span></td>\n        </tr>\n      </tbody>\n    </table>\n\n    <div class=\"comparison-insights\">\n      <h3>Key Takeaways</h3>\n      <ul>\n        <li><strong>Price Leader:</strong> [Who wins on price and why]</li>\n        <li><strong>Variety & Selection:</strong> [Who has the best assortment]</li>\n        <li><strong>Customer Confidence:</strong> [Rating/review insights]</li>\n        <li><strong>Practical Features:</strong> [Who offers best features]</li>\n        <li><strong>Shipping Convenience:</strong> [Delivery comparison]</li>\n        <li><strong>Overall:</strong> [Summary of who wins in what scenarios]</li>\n      </ul>\n    </div>\n  </section>\n\n  <style>\n  .winner-badge {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 20px;\n    font-weight: 600;\n    font-size: 0.85rem;\n  }\n  .winner-wayfair { background: #d1fae5; color: #065f46; }\n  .winner-amazon { background: #fef3c7; color: #92400e; }\n  .winner-walmart { background: #dbeafe; color: #1e40af; }\n  .winner-tie { background: #f3f4f6; color: #374151; }\n  </style>\n\n  WINNER CLASS RULES:\n  - If Wayfair wins: use class=\"winner-wayfair\"\n  - If Amazon wins: use class=\"winner-amazon\"\n  - If Walmart wins: use class=\"winner-walmart\"\n  - If Tie: use class=\"winner-tie\"\n\n  IMPORTANT:\n  - Calculate actual averages from the product data\n  - Be objective - pick winner based on data, not bias\n  - Use \"Tie\" when competitors are roughly equal\n  - Include the inline style block at the end for winner badges\n - Always use VERIFIED STATS (wayfair, amazon, walmart) for all calculated table rows (never recalculate from the product lists):\n  * Product Count / Variety: productCount\n  * Price Range: priceRange\n  * Average Price: avgPrice\n  * Average Rating: avgRating\n  * Total Reviews: totalReviews"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3648,
+        -48
+      ],
+      "id": "76b26bdb-9f9d-4f5b-aa07-554772f48308",
+      "name": "ComparisonGenerator"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        160
+      ],
+      "id": "f2c2c959-080f-46ef-b163-9a34b390d2d7",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4016,
+        -48
+      ],
+      "id": "dd661191-e576-407b-9cc4-b8f289e00d4d",
+      "name": "WaitAfterComparisonGenerator",
+      "webhookId": "9c80fb5b-9c2f-4b72-9152-c07c66d57bb1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CATEGORY: {{ $('InputParser').first().json.categoryDisplayName }}\n\nVERIFIED STATS:\n{{ JSON.stringify($('VerifiedSatsCalculator').first().json.verifiedStats) }}\n\n\nWAYFAIR PRODUCTS (prices):\n{{ JSON.stringify($('Reshape Wayfair Response').first().json.wayfair_products?.map(p => ({ title: p.title, price: p.price, list_price: p.list_price, discount: p.discount_percent })).slice(0, 15), null, 2) }}\n\nAMAZON PRODUCTS (prices):\n{{ JSON.stringify($('Reshape Amazon Response').first().json.amazonProducts?.map(p => ({ name: p.name, price: p.price })).slice(0, 15), null, 2) }}\n\nWALMART PRODUCTS (prices):\n{{ JSON.stringify($('Reshape Walmart Response').first().json.walmartProducts?.map(p => ({ name: p.name, price: p.price, originalPrice: p.originalPrice, sizes: p.sizes })).slice(0, 15), null, 2) }}",
+        "options": {
+          "systemMessage": "=You are a pricing strategist. Analyze pricing across Wayfair, Amazon, and Walmart.\n\n  TASK: Create Pricing Insights & Whitespace Analysis with visual elements.\n\n  ANALYZE:\n  1. Price band distribution per competitor (budget <$100, mid $100-300, premium $300+)\n  2. Count products in each band for each retailer\n  3. Discount strategies across retailers (using list/original prices if available, or title promo tags if missing)\n  4. Price gaps and underserved segments\n  5. Whitespace opportunities (prioritized as High/Medium/Low)\n\n  OUTPUT FORMAT (HTML only, no markdown):\n  <section class=\"pricing-whitespace\">\n    <h2>Pricing Insights</h2>\n\n    <div class=\"price-bands\">\n      <h3>Price Distribution by Retailer</h3>\n      <div class=\"band-chart\">\n        <div class=\"band budget\">\n          <span>Budget (&lt;$100)</span>\n          <span>W: [X] | A: [Y] | Wm: [Z]</span>\n        </div>\n        <div class=\"band mid\">\n          <span>Mid ($100-$300)</span>\n          <span>W: [X] | A: [Y] | Wm: [Z]</span>\n        </div>\n        <div class=\"band premium\">\n          <span>Premium ($300+)</span>\n          <span>W: [X] | A: [Y] | Wm: [Z]</span>\n        </div>\n      </div>\n      <div class=\"insights\">\n        <p><strong>Analysis:</strong> [2-3 sentences about price distribution patterns]</p>\n      </div>\n    </div>\n\n    <div class=\"discount-strategies\">\n      <h3>Discount Strategies</h3>\n      <div class=\"discount-chart\">\n        <div class=\"discount-tier\">\n          <span>No Discount</span>\n          <span class=\"na-badge\">N/A*</span>\n        </div>\n        <div class=\"discount-tier\">\n          <span>1-30% Off</span>\n          <span class=\"na-badge\">N/A*</span>\n        </div>\n        <div class=\"discount-tier\">\n          <span>31-50% Off</span>\n          <span class=\"na-badge\">N/A*</span>\n        </div>\n        <div class=\"discount-tier\">\n          <span>50%+ Off</span>\n          <span class=\"na-badge\">N/A*</span>\n        </div>\n      </div>\n      <div class=\"insights\">\n        <p><strong>Key Insight:</strong> [Observation about discount strategies across retailers, noting any promo keywords in titles such as \"Clearance\" or \"Rollback\". If original/list prices are missing, end with: \"*Original/list prices are not included in the current feed, so discount depth cannot be calculated.\"]</p>\n      </div>\n    </div>\n\n    <h2>Whitespace Analysis</h2>\n\n    <div class=\"whitespace-opportunities\">\n      <h3>Market Gaps & Opportunities</h3>\n      <div class=\"opportunity-cards\">\n        <div class=\"opportunity-card high-priority\">\n          <h4>🎯 [High Priority Opportunity Title]</h4>\n          <p>[Description of the gap - what price range, what's missing, why it matters]</p>\n          <span class=\"priority\">High Priority</span>\n          <div class=\"rationale\"><p><strong>Why?</strong> [Brief justification]</p></div>\n        </div>\n        <div class=\"opportunity-card high-priority\">\n          <h4>🎯 [Another High Priority Opportunity]</h4>\n          <p>[Description]</p>\n          <span class=\"priority\">High Priority</span>\n          <div class=\"rationale\"><p><strong>Why?</strong> [Brief justification]</p></div>\n        </div>\n        <div class=\"opportunity-card medium-priority\">\n          <h4>⚡ [Medium Priority Opportunity]</h4>\n          <p>[Description]</p>\n          <span class=\"priority\">Medium Priority</span>\n        </div>\n        <div class=\"opportunity-card low-priority\">\n          <h4>📊 [Low Priority Opportunity]</h4>\n          <p>[Description]</p>\n          <span class=\"priority\">Low Priority</span>\n        </div>\n      </div>\n    </div>\n\n    <div class=\"price-gaps\">\n      <h3>Price Gap Heatmap</h3>\n      <div class=\"heatmap\">\n        <div class=\"gap hot\"><span>$0-$50</span><span>🔥 High Competition (Amazon/Walmart)</span></div>\n        <div class=\"gap warm\"><span>$50-$100</span><span>⚠️ Moderate Competition</span></div>\n        <div class=\"gap moderate\"><span>$100-$200</span><span>⚠️ Discount-Heavy</span></div>\n        <div class=\"gap cool\"><span>$200-$400</span><span>🟢 Opportunity Zone</span></div>\n        <div class=\"gap open\"><span>$400+</span><span>🟢🟢 Wide Open</span></div>\n      </div>\n    </div>\n  </section>\n\n  <style>\n  .discount-chart {\n    display: flex;\n    flex-direction: column;\n    gap: 10px;\n  }\n  .discount-tier {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 12px 16px;\n    background: #f8fafc;\n    border-radius: 8px;\n  }\n  .na-badge {\n    display: inline-block;\n    padding: 4px 10px;\n    border-radius: 12px;\n    background: #f1f5f9;\n    color: #64748b;\n    font-size: 12px;\n    font-weight: 600;\n    letter-spacing: 0.3px;\n  }\n  </style>\n\n  IMPORTANT:\n  - Output valid HTML only with no markdown code fences\n  - Always use VERIFIED STATS (wayfair, amazon, walmart) for all calculated pricing figures (never recount from the product lists):\n  * Budget (<$100) band counts: priceBands.budgetUnder100\n  * Mid ($100-$300) band counts: priceBands.mid100To300\n  * Premium ($300+) band counts: priceBands.premiumOver300\n  * Average price references in text: avgPrice\n  - DISCOUNT RULE: If original/list prices (`list_price`, `originalPrice`, `discount`) are null or missing from the product data, keep all four `.na-badge` values strictly as `N/A*` and keep the four tier labels (`No Discount`, `1-30% Off`, `31-50% Off`, `50%+ Off`) unchanged. Only replace `N/A*` with `W: X% | A: Y% | Wm: Z%` if valid original/list prices exist in the input data.\n  - Scan product titles for promotional words (such as \"Clearance\", \"Sale\", \"Rollback\", or \"Deal\") and report them in the Key Insight box\n  - Include 2-3 high priority, 1-2 medium priority, and 1 low priority opportunities\n  - Make the heatmap reflect actual competition levels based on the data\n  - Use emojis as shown (🎯, ⚡, 📊, 🔥, ⚠️, 🟢)\n  - W = Wayfair, A = Amazon, Wm = Walmart in the band chart\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4240,
+        -48
+      ],
+      "id": "7f1e1c90-8167-4366-a3af-dc08a956322d",
+      "name": "Pricing & Whitespace Generator"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        4112,
+        160
+      ],
+      "id": "acc83274-9a07-4499-9e2a-03cbdb3de361",
+      "name": "OpenRouter Chat Model3",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4608,
+        -48
+      ],
+      "id": "30330b7e-391d-45c2-aec1-3fdedea5a486",
+      "name": "WaitAfterPricing",
+      "webhookId": "048b6226-85c8-4af6-8d3e-d5d3ecfeaceb"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CATEGORY: {{ $('InputParser').first().json.categoryDisplayName }}\n\nVERIFIED STATS:\n{{ JSON.stringify($('VerifiedSatsCalculator').first().json.verifiedStats) }}\n\n\nEXECUTIVE SUMMARY:\n{{ $('ExecuteSummaryGenerator').first().json.output }}\n\nAMAZON ANALYSIS:\n{{ $('CompetitorAnalysisGenerator').first().json.output }}\n\nCOMPARISON:\n{{ $('ComparisonGenerator').first().json.output }}\n\nPRICING & WHITESPACE:\n{{ $('Pricing & Whitespace Generator').first().json.output }}",
+        "options": {
+          "systemMessage": "=You are a senior strategy consultant. Based on all the analysis of Wayfair vs Amazon vs Walmart, provide actionable recommendations.\n\n  TASK: Create Strategic Recommendations with clear prioritization and visual hierarchy.\n\n  PROVIDE:\n  1. 2-3 Quick Wins (immediate actions, high impact)\n  2. 3-4 Strategic Initiatives (longer-term plays)\n  3. Each recommendation needs: title, description, priority level, expected impact\n  4. At least one recommendation should specifically address Walmart competition\n  5. At least one recommendation should specifically address Amazon competition\n\n  OUTPUT FORMAT (Raw HTML only):\n\n  <section class=\"recommendations\">\n    <h2>Strategic Recommendations</h2>\n\n    <div class=\"quick-wins\">\n      <h3>🚀 Quick Wins (Immediate Actions)</h3>\n      <div class=\"rec-cards\">\n        <div class=\"rec-card priority-high\">\n          <h4>1. [Recommendation Title]</h4>\n          <p>[Detailed description - 2-3 sentences explaining what to do and why. Mention which competitor this addresses (Amazon/Walmart/Both).]</p>\n          <div class=\"rec-meta\">\n            <span class=\"priority\">High Priority</span>\n            <span class=\"impact\">Impact: High</span>\n          </div>\n        </div>\n        <div class=\"rec-card priority-high\">\n          <h4>2. [Recommendation Title]</h4>\n          <p>[Detailed description addressing specific competitor threat or opportunity.]</p>\n          <div class=\"rec-meta\">\n            <span class=\"priority\">High Priority</span>\n            <span class=\"impact\">Impact: High</span>\n          </div>\n        </div>\n      </div>\n    </div>\n\n    <div class=\"strategic-plays\">\n      <h3>📊 Strategic Initiatives</h3>\n      <div class=\"rec-cards\">\n        <div class=\"rec-card priority-high\">\n          <h4>3. [Strategic Initiative Title]</h4>\n          <p>[Longer description - explain the strategy, which competitor gap it exploits, and expected outcomes.]</p>\n          <div class=\"rec-meta\">\n            <span class=\"priority\">High Priority</span>\n            <span class=\"impact\">Impact: High</span>\n          </div>\n        </div>\n        <div class=\"rec-card priority-medium\">\n          <h4>4. [Strategic Initiative Title]</h4>\n          <p>[Description of medium-priority initiative.]</p>\n          <div class=\"rec-meta\">\n            <span class=\"priority\">Medium Priority</span>\n            <span class=\"impact\">Impact: Medium</span>\n          </div>\n        </div>\n        <div class=\"rec-card priority-medium\">\n          <h4>5. [Strategic Initiative Title]</h4>\n          <p>[Description - could be about differentiation, new product lines, or market positioning.]</p>\n          <div class=\"rec-meta\">\n            <span class=\"priority\">Medium Priority</span>\n            <span class=\"impact\">Impact: Medium</span>\n          </div>\n        </div>\n        <div class=\"rec-card priority-low\">\n          <h4>6. [Lower Priority Initiative]</h4>\n          <p>[Description of a nice-to-have or longer-term exploration.]</p>\n          <div class=\"rec-meta\">\n            <span class=\"priority\">Low Priority</span>\n            <span class=\"impact\">Impact: Medium</span>\n          </div>\n        </div>\n      </div>\n    </div>\n  </section>\n\n  PRIORITY GUIDELINES:\n  - priority-high: Urgent, addresses immediate competitive threat, high ROI\n  - priority-medium: Important but not urgent, builds long-term advantage\n  - priority-low: Nice to have, exploratory, or requires more research\n\n  CONTENT GUIDELINES:\n  - Be specific - reference actual findings from the analysis\n  - Mention specific competitors by name (Amazon, Walmart)\n  - Reference specific price points or product gaps identified\n  - Include actionable next steps, not vague suggestions\n  - Each recommendation should tie back to data from earlier sections\n\n  EXAMPLES OF GOOD RECOMMENDATIONS:\n  - \"Launch a $80-$150 'Value Plus' line to compete with Walmart's large-format rugs\"\n  - \"Expand machine-washable selection to counter Amazon's Soalmost success\"\n  - \"Create 'Designer Picks' collections to differentiate from Amazon's Ophanie dominance\"\n- Always use the exact price ranges, average prices, product counts, and ratings from VERIFIED STATS; never invent or contradict figures from earlier sections"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4832,
+        -48
+      ],
+      "id": "484c9b82-2819-4d61-8458-d66ec47334fa",
+      "name": "RecommendationGeneratorNode"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        4704,
+        160
+      ],
+      "id": "9d398410-bbd1-4fde-ba8c-a281f5b1e3d8",
+      "name": "OpenRouter Chat Model4",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5200,
+        -48
+      ],
+      "id": "50fbc4db-56b0-4b7e-a025-582505a08aaa",
+      "name": "WaitAfterRecommendation",
+      "webhookId": "182b4170-9dbd-4fd1-bbbe-7baa053fa15b"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CATEGORY: {{ $('InputParser').first().json.categoryDisplayName }}\n\nVERIFIED STATS:\n{{ JSON.stringify($('VerifiedSatsCalculator').first().json.verifiedStats) }}\n\n\nAMAZON PRODUCTS:\n{{ JSON.stringify($('Reshape Amazon Response').first().json.amazonProducts?.map(p => ({ name: p.name, brand: p.brand, url: p.url, price: p.price })).slice(0, 15), null, 2) }}\n\nWALMART PRODUCTS:\n{{ JSON.stringify($('Reshape Walmart Response').first().json.walmartProducts?.map(p => ({ name: p.name, brand: p.brand, url: p.url, price: p.price })).slice(0, 15), null, 2) }}\n\nWAYFAIR PRODUCTS:\n{{ JSON.stringify($('Reshape Wayfair Response').first().json.wayfair_products?.map(p => ({ name: p.name, url: p.url, price:p.price })).slice(0, 15), null, 2) }}",
+        "options": {
+          "systemMessage": "=You are a sourcing analyst specializing in home goods supply chain. Identify suppliers and brands from competitor product data.\n\n  TASK: Create a Supplier Identification & Sourcing Opportunities section.\n\n  ANALYZE THE DATA TO:\n  1. Extract all unique brand/supplier names from Amazon and Walmart products\n  2. Identify which brands are NOT currently on Wayfair\n  3. Note what each supplier is known for (style, price point, features)\n  4. Find sourcing opportunities for Wayfair\n\n     OUTPUT FORMAT (Raw HTML only — start immediately with <section and end with </section>; do NOT echo Category or Verified Stats anywhere inside or outside the HTML):\n  <section class=\"supplier-identification\">\n    <h2>Supplier Identification & Sourcing Opportunities</h2>\n\n    <div class=\"suppliers-observed\">\n      <h3>Major Suppliers / Brands Observed</h3>\n      <table class=\"data-table\">\n        <thead>\n          <tr>\n            <th>Supplier / Brand</th>\n            <th>Platform</th>\n            <th>Known For</th>\n            <th>Price Range</th>\n            <th>Website</th>\n          </tr>\n        </thead>\n        <tbody>\n          <tr>\n            <td><strong>[Brand Name]</strong></td>\n            <td>[Amazon/Walmart/Both]</td>\n            <td>[Brief description - style, features, target market]</td>\n            <td>$[X] - $[Y]</td>\n            <td><a href=\"[url_if_known]\">[Website or \"Amazon Storefront\"]</a></td>\n          </tr>\n          <!-- Repeat for each major brand found (aim for 5-10 brands) -->\n        </tbody>\n      </table>\n    </div>\n\n    <div class=\"sourcing-opportunities\">\n      <h3>Sourcing Opportunities</h3>\n      <div class=\"opportunity-cards\">\n        <div class=\"opportunity-card high-priority\">\n          <h4>🎯 Brands Not Currently on Wayfair</h4>\n          <p>The following suppliers are active on Amazon/Walmart but appear absent from Wayfair's catalog:</p>\n          <ul>\n            <li><strong>[Brand]</strong> - [Why they'd be valuable: style, price point, reviews]</li>\n            <li><strong>[Brand]</strong> - [Why they'd be valuable]</li>\n            <li><strong>[Brand]</strong> - [Why they'd be valuable]</li>\n          </ul>\n          <span class=\"priority\">High Priority</span>\n        </div>\n\n        <div class=\"opportunity-card medium-priority\">\n          <h4>⚡ Style Gaps to Fill</h4>\n          <p>These suppliers offer styles or products that could fill gaps in Wayfair's assortment:</p>\n          <ul>\n            <li><strong>[Brand]</strong> specializes in [style] which Wayfair lacks depth in</li>\n            <li><strong>[Brand]</strong> offers [feature/style] at competitive price points</li>\n          </ul>\n          <span class=\"priority\">Medium Priority</span>\n        </div>\n\n        <div class=\"opportunity-card medium-priority\">\n          <h4>🏭 Private Label / Exclusive Candidates</h4>\n          <p>These suppliers may be suitable for private label partnerships or exclusive arrangements:</p>\n          <ul>\n            <li><strong>[Brand]</strong> - [Why: quality, price point, style alignment]</li>\n            <li><strong>[Brand]</strong> - [Why: manufacturing capability, unique features]</li>\n          </ul>\n          <span class=\"priority\">Medium Priority</span>\n        </div>\n      </div>\n    </div>\n\n    <div class=\"supplier-insights\">\n      <h3>Key Supplier Insights</h3>\n      <div class=\"insights\">\n        <ul>\n          <li><strong>Amazon Dominance:</strong> [Which brand dominates Amazon in this category and why]</li>\n          <li><strong>Walmart Focus:</strong> [What type of suppliers Walmart features]</li>\n          <li><strong>Price Point Gaps:</strong> [Where supplier opportunities exist by price]</li>\n          <li><strong>Emerging Brands:</strong> [Any newer brands showing strong reviews/traction]</li>\n        </ul>\n      </div>\n    </div>\n  </section>\n\n  BRAND IDENTIFICATION TIPS:\n  - Look for brand names in product titles (usually first word or after \"by\")\n  - Common Amazon rug brands: Ophanie, Rugs.com, Safavieh, nuLOOM, Unique Loom, Gorilla Grip, Lahome\n  - Common Walmart rug brands: Mainstays, Better Homes & Gardens, SAFAVIEH, Pentantan, My Texas House\n  - If brand website unknown, link to the most reviewed product from the brand  in amazon/walmart website\n\n  IMPORTANT:\n  - Only include brands you can actually identify from the product data\n  - Compare against Wayfair's manufacturer list to identify gaps\n  - Be realistic about private label candidates (smaller brands, quality products)\n  - All unique brands, aim for 8–12\n- Always use the exact product counts, price ranges, and average prices from VERIFIED STATS whenever referencing marketplace totals or pricing benchmarks; never recalculate them from the product lists.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        5424,
+        -48
+      ],
+      "id": "3df844e8-0d33-41f0-b649-a4e7b3ec7c52",
+      "name": "Supplier Identification Generator"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        5296,
+        160
+      ],
+      "id": "080d0092-8c9c-4ba5-8522-2236cdf9210d",
+      "name": "OpenRouter Chat Model5",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Stage 6: OUTPUT\n- HTML Assembler: Combines all sections into complete HTML with CSS styling\n- Clean AI output: Cleans markdown artifacts and validates HTML structure\n- Download HTML file from Here:  Converts HTML to downloadable binary file\n- See HTML output here: Renders final report for preview",
+        "height": 880,
+        "width": 1152,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5760,
+        -384
+      ],
+      "typeVersion": 1,
+      "id": "cd8aada6-9ab0-4f5d-8c3a-77106a7f5180",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// HTML ASSEMBLER - Combines all sections into final report\n\nconst category = $('InputParser').first().json.categoryDisplayName || 'Rugs';\nconst scopeHtml = $('ScopeGeneratorNode').first().json.html || '';\nconst execSummary = $('ExecuteSummaryGenerator').first().json.output || '';\nconst amazonAnalysis = $('CompetitorAnalysisGenerator').first().json.output || '';\nconst comparison = $('ComparisonGenerator').first().json.output || '';\nconst pricingWhitespace = $('Pricing & Whitespace Generator').first().json.output || '';\nconst recommendations = $('RecommendationGeneratorNode').first().json.output || '';\nconst supplierIdentification = $('Supplier Identification Generator').first().json.output || '';\n\nconst fullHtml = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Competitor Analysis Report - ${category}</title>\n  <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap\" rel=\"stylesheet\">\n  <style>\n      :root {\n        --primary: #7C3AED;\n        --primary-light: #A78BFA;\n        --success: #059669;\n        --warning: #D97706;\n        --danger: #DC2626;\n        --gray-50: #F9FAFB;\n        --gray-100: #F3F4F6;\n        --gray-200: #E5E7EB;\n        --gray-500: #6B7280;\n        --gray-700: #374151;\n        --gray-900: #111827;\n      }\n      * { box-sizing: border-box; margin: 0; padding: 0; }\n      body {\n        font-family: 'Inter', -apple-system, sans-serif;\n        line-height: 1.6;\n        color: var(--gray-700);\n        background: var(--gray-50);\n        padding: 2rem;\n      }\n      .report-container {\n        max-width: 1200px;\n        margin: 0 auto;\n        background: white;\n        border-radius: 12px;\n        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);\n        overflow: hidden;\n      }\n      .report-header {\n        background: linear-gradient(135deg, var(--primary) 0%, #5B21B6 100%);\n        color: white;\n        padding: 3rem;\n        text-align: center;\n      }\n      .report-header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }\n      .report-header .subtitle { opacity: 0.9; font-size: 1.1rem; }\n      .report-content { padding: 2rem 3rem; }\n      section { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--gray-200); }\n      section:last-child { border-bottom: none; }\n      h2 { color: var(--gray-900); font-size: 1.75rem; font-weight: 600; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 3px solid var(--primary); display: inline-block; }\n      h3 { color: var(--gray-700); font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; }\n      h4 { color: var(--gray-700); font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }\n\n      /* Scope & Stats Grid */\n      .scope-grid, .stats-grid, .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 1rem 0; }\n      .scope-card, .stat-card, .profile-card {\n        background: var(--gray-50);\n        padding: 1.5rem;\n        border-radius: 8px;\n        border: 1px solid var(--gray-200);\n      }\n      .scope-value, .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--primary); }\n      .stat-label { display: block; font-size: 0.875rem; color: var(--gray-500); margin-top: 0.25rem; }\n\n      /* Executive Summary */\n      .summary-hero { background: linear-gradient(135deg, #F3E8FF 0%, #E0E7FF 100%); padding: 2rem; border-radius: 12px; margin-bottom: 1.5rem; }\n      .key-insight .label { background: var(--primary); color: white; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }\n      .key-insight p { font-size: 1.25rem; font-weight: 500; color: var(--gray-900); margin-top: 1rem; }\n      .summary-points ul, .feature-analysis ul { list-style: none; }\n      .summary-points li, .feature-analysis li { padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100); }\n\n      /* Data Tables */\n      .data-table, .comparison-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }\n      .data-table th, .comparison-table th { background: var(--gray-100); padding: 1rem; text-align: left; font-weight: 600; }\n      .data-table td, .comparison-table td { padding: 1rem; border-bottom: 1px solid var(--gray-200); }\n      .data-table a { color: var(--primary); text-decoration: none; font-weight: 500; }\n      .data-table a:hover { text-decoration: underline; }\n\n      /* Winner Styling */\n      .winner { font-weight: 600; }\n      .winner-wayfair, td.winner:contains('Wayfair') { color: var(--success); }\n      .winner-amazon, td.winner:contains('Amazon') { color: var(--warning); }\n      .winner-walmart { color: #2563EB; }\n\n      /* Pricing Bands - Colored Bars */\n      .band-chart { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }\n      .band {\n        flex: 1;\n        min-width: 150px;\n        padding: 20px 15px;\n        border-radius: 8px;\n        color: white;\n        text-align: center;\n        font-weight: bold;\n        box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n      }\n      .band span { display: block; }\n      .band span:first-child { font-size: 0.9rem; margin-bottom: 8px; opacity: 0.9; }\n      .band span:last-child { font-size: 1.1rem; }\n      .band.budget { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }\n      .band.mid { background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }\n      .band.premium { background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); }\n\n      /* Discount Tiers */\n      .discount-chart { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }\n      .discount-tier {\n        flex: 1;\n        min-width: 120px;\n        padding: 15px;\n        background: var(--gray-100);\n        border-radius: 8px;\n        text-align: center;\n        border: 1px solid var(--gray-200);\n      }\n      .discount-tier span { display: block; }\n      .discount-tier span:first-child { font-size: 0.85rem; color: var(--gray-500); margin-bottom: 5px; }\n      .discount-tier span:last-child { font-size: 1.25rem; font-weight: 700; color: var(--primary); }\n\n      /* Opportunity Cards with Priority Colors */\n      .opportunity-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }\n      .opportunity-card, .rec-card {\n        background: white;\n        border: 1px solid var(--gray-200);\n        border-radius: 8px;\n        padding: 1.5rem;\n        margin-bottom: 1rem;\n        box-shadow: 0 2px 4px rgba(0,0,0,0.05);\n      }\n      .opportunity-card.high-priority { border-left: 4px solid #e74c3c; background-color: #fdf2f2; }\n      .opportunity-card.medium-priority { border-left: 4px solid #f39c12; background-color: #fffbf0; }\n      .opportunity-card.low-priority { border-left: 4px solid #3498db; background-color: #f0f7ff; }\n      .rec-card.priority-high { border-left: 4px solid #e74c3c; background-color: #fdf2f2; }\n      .rec-card.priority-medium { border-left: 4px solid #f39c12; background-color: #fffbf0; }\n      .rec-card.priority-low { border-left: 4px solid #3498db; background-color: #f0f7ff; }\n\n      /* Priority Badges */\n      .priority {\n        display: inline-block;\n        margin-top: 10px;\n        padding: 4px 12px;\n        border-radius: 20px;\n        font-size: 0.75rem;\n        font-weight: 600;\n        text-transform: uppercase;\n      }\n      .high-priority .priority, .priority-high .priority { background-color: #e74c3c; color: white; }\n      .medium-priority .priority, .priority-medium .priority { background-color: #f39c12; color: white; }\n      .low-priority .priority, .priority-low .priority { background-color: #3498db; color: white; }\n\n      /* Price Gap Heatmap */\n      .heatmap { margin-top: 20px; }\n      .gap {\n        display: flex;\n        justify-content: space-between;\n        align-items: center;\n        padding: 12px 16px;\n        margin: 8px 0;\n        border-radius: 6px;\n        font-weight: 500;\n      }\n      .gap span:last-child { font-weight: 600; }\n      .gap.hot { background-color: #fde8e8; color: #991b1b; }\n      .gap.warm { background-color: #fef3c7; color: #92400e; }\n      .gap.moderate { background-color: #fef9c3; color: #854d0e; }\n      .gap.cool { background-color: #d1fae5; color: #065f46; }\n      .gap.open { background-color: #d1fae5; color: #065f46; }\n\n      /* Recommendation Cards */\n      .rec-cards { display: grid; gap: 1rem; margin-top: 1rem; }\n      .rec-meta { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); }\n      .impact { color: var(--gray-500); font-size: 0.875rem; }\n\n      /* Insights Box */\n      .insights, .rationale {\n        background-color: var(--gray-50);\n        padding: 12px 16px;\n        border-radius: 6px;\n        margin-top: 12px;\n        font-size: 0.9rem;\n        border-left: 3px solid var(--primary-light);\n      }\n\n      /* Footer */\n      .report-footer { background: var(--gray-100); padding: 1.5rem 3rem; text-align: center; font-size: 0.875rem; color: var(--gray-500); }\n    </style>\n</head>\n<body>\n  <div class=\"report-container\">\n    <header class=\"report-header\">\n      <h1>Competitor Analysis Report</h1>\n      <p class=\"subtitle\">${category} - Wayfair vs Amazon vs Walmart</p>\n    </header>\n    <main class=\"report-content\">\n      ${execSummary}\n      ${scopeHtml}\n      ${amazonAnalysis}\n      ${comparison}\n      ${pricingWhitespace}\n      ${recommendations}\n      ${supplierIdentification}\n    </main>\n    <footer class=\"report-footer\">\n      <p>Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} | Wayfair Competitive Intelligence</p>\n    </footer>\n  </div>\n</body>\n</html>`;\n\nreturn [{\n  json: {\n    output: fullHtml,\n    sections: {\n      scope: !!scopeHtml,\n      executive: !!execSummary,\n      amazon: !!amazonAnalysis,\n      comparison: !!comparison,\n      pricing: !!pricingWhitespace,\n      recommendations: !!recommendations\n    },\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5792,
+        -48
+      ],
+      "id": "89840e39-efdd-4053-aa02-ac9b82f008f1",
+      "name": "HTML Assembler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// === INPUT: Raw LLM output (string) from previous node ===\nlet html = $input.first().json.output || \"\";\n\n// 1. Remove Markdown code fences\nhtml = html.replace(/```html|```/g, \"\").trim();\n\n// 2. Un-escape newlines / tabs / carriage returns and collapse excess whitespace\nhtml = html\n  .replace(/\\\\n/g, \"\\n\")\n  .replace(/\\\\t/g, \"\\t\")\n  .replace(/\\\\r/g, \"\")\n  .replace(/\\s{2,}/g, \" \")          // multiple spaces → one space\n  .replace(/\\n\\s*\\n/g, \"\\n\")        // blank lines → single newline\n  .trim();\n\n// 3. Remove any duplicate/malformed wrappers that the LLM might have added\nhtml = html\n  .replace(/<\\/?(html|body)>/gi, \"\")   // strip stray <html>/<body>\n  .replace(/<!DOCTYPE\\s+html?>/gi, \"\") // strip stray doctype\n  .trim();\n\n// 4. Ensure a **single** valid HTML5 skeleton\nif (!/<!DOCTYPE\\s+html/i.test(html)) {\n  html = \"<!DOCTYPE html>\\n\" + html;\n}\nif (!/<html[\\s>]/i.test(html)) {\n  html = html.replace(/^/, \"<html lang=\\\"en\\\">\\n\");\n}\nif (!/<body[\\s>]/i.test(html)) {\n  html = html.replace(/^(.*?)<html[^>]*>/i, \"$1<html lang=\\\"en\\\"><body>\\n\");\n  html += \"\\n</body>\";\n}\nif (!/<\\/html>/i.test(html)) {\n  html += \"\\n</html>\";\n}\n\n// 5. Light minify – keep all styles, just remove empty lines between tags\nhtml = html.replace(/>\\n\\s*</g, \"><\");\n\n// === OUTPUT: Clean, untouched-style HTML ===\nreturn [{\n  json: {\n    cleaned_html: html,                     // full readable HTML (preserves all CSS)\n    minified_html: html.replace(/\\s+/g, \" \"),// optional one-liner version\n    agent_id: 3,\n    debug: {\n      original_length: ($input.first().json.output || \"\").length,\n      cleaned_length: html.length,\n      fences_removed: true,\n      wrappers_fixed: true\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6016,
+        -48
+      ],
+      "id": "9b7bc772-3758-438b-9eb2-1d71e9bc827a",
+      "name": "Clean AI output"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create downloadable HTML file\nconst html = $input.first().json.minified_html || $input.first().json.cleanedHtml || $input.first().json.html || '';\nconst category = $('InputParser').first().json.categoryDisplayName || 'Rug';\n\n// Generate filename matching P2's pattern: <category_slug>_competitor_report_<YYYY-MM-DD>.html\nconst dateStr = new Date().toISOString().split('T')[0];\nconst categorySlug = category.toLowerCase().replace(/\\s+/g, '_');\nconst fileName = `${categorySlug}_competitor_report_${dateStr}.html`;\n\n// Create binary data for download\nconst buffer = Buffer.from(html, 'utf8');\n\nreturn [{\n  json: {\n    fileName: fileName,\n    category: category,\n    generatedAt: new Date().toISOString()\n  },\n  binary: {\n    data: {\n      data: buffer.toString('base64'),\n      mimeType: 'text/html',\n      fileName: fileName\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6240,
+        -48
+      ],
+      "id": "a22694d1-90d1-4f39-9b4a-c1bb723c8b37",
+      "name": "Download HTML file from Here"
+    },
+    {
+      "parameters": {
+        "html": "{{ $('Clean AI output').first().json.cleaned_html }}"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        6464,
+        -48
+      ],
+      "id": "a869a0b5-c27e-4741-b3bc-8ed92c5546d1",
+      "name": "See HTML output here"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        7184,
+        160
+      ],
+      "id": "fe51b100-d127-49b9-8490-232ba91ccb05",
+      "name": "OpenRouter Chat Model8",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=SOURCE PRODUCT DATA:\n\nWayfair:\n{{ JSON.stringify($('Reshape Wayfair Response').first().json) }}\n\nAmazon:\n{{ JSON.stringify($('Reshape Amazon Response').first().json) }}\n\nWalmart:\n{{ JSON.stringify($('Reshape Walmart Response').first().json) }}\n\nGENERATED HTML REPORT:\n\n{{ $('Clean AI output').first().json.cleaned_html }}\n\nEXPECTED REPORT SECTIONS:\n\n{{ $('InputParser').first().json.expected_sections }}\n\nVERIFIED GROUND-TRUTH STATS (USE THIS TO VERIFY ALL NUMBERS):\n{{ JSON.stringify($('VerifiedSatsCalculator').first().json.verifiedStats) }}\n\n\n",
+        "options": {
+          "systemMessage": "=You are a strict e-commerce competitive report evaluator.\n\nEvaluate the generated report against the original Wayfair, Amazon and Walmart marketplace data and the expected report sections.\n\n## 1. Evaluation dimensions\n\nScore all seven dimensions independently from 1 to 5:\n\n1. factual_accuracy\n2. completeness\n3. data_consistency\n4. relevance\n5. insight_quality\n6. html_quality\n7. source_link_verification\n\nScoring:\n- 1 = Very Poor: Major problems.\n- 2 = Poor: Several significant problems.\n- 3 = Average: Some requirements met, noticeable problems.\n- 4 = Good: Most requirements met, minor problems.\n- 5 = Excellent: Fully meets requirements, no significant problems.\n\n## 2. Evaluation rules\n\n**Factual accuracy**\n- Compare product names, prices, ratings, reviews and counts against source data.\n- Recalculate numerical claims where possible.\n- Identify unsupported or incorrect claims.\n- Use VERIFIED GROUND-TRUTH STATS as the exact reference for product counts, price ranges, average prices, average ratings, review totals, and price band counts.\n\n**Completeness**\n- Check every expected report section.\n- Identify missing or incomplete sections.\n\n**Data consistency**\n- Check consistency between product tables, summaries, pricing analysis and recommendations.\n- Identify contradictory figures or claims.\n\n**Relevance**\n- Check whether the report addresses the product category and requested focus.\n\n**Insight quality**\n- Assess whether insights and recommendations are supported by marketplace evidence.\n- Identify generic or unsupported recommendations.\n\n**HTML quality**\n- Check HTML structure, CSS, readability, layout, tables and clickable links.\n- Note: GENERATED HTML REPORT is an inner body fragment wrapped in <html>/<body> later; do not penalize missing <html>, <head>, or <body> wrapper tags.\n\n**Source link verification**\n- Compare product links with the original source URLs.\n- Check that Scope of Research → Data Sources contains clickable source links for Wayfair, Amazon and Walmart.\n- Do not claim a link is verified unless its destination matches the original source URL.\n- Report only missing, invalid or incorrect links. Do not list every successful link.\n\n## 3. Evidence requirements\n\n- Every reported issue must include concise evidence.\n- Never invent errors or assume information.\n- Do not repeat the same issue across multiple dimensions unless it affects each dimension independently.\n- Do not provide lengthy explanations.\n- If no issue is found, return an empty issue array.\n\n## 4. Output limits\n\n- Maximum 3 issues per dimension.\n- Maximum 5 missing sections.\n- Maximum 3 strengths and 3 weaknesses.\n- Maximum 5 problematic links in each source-link issue array.\n- Each summary must be no longer than 30 words.\n- Each issue description must be no longer than 35 words.\n- Keep the output concise and complete.\n\n## 5. Required JSON output\n\nReturn ONLY one valid JSON object. No Markdown, code fences or explanations.\n\n{\n  \"factual_accuracy\": {\n    \"score\": 1,\n    \"summary\": \"\",\n    \"issues\": []\n  },\n  \"completeness\": {\n    \"score\": 1,\n    \"summary\": \"\",\n    \"present_sections\": [],\n    \"missing_sections\": []\n  },\n  \"data_consistency\": {\n    \"score\": 1,\n    \"summary\": \"\",\n    \"inconsistencies\": []\n  },\n  \"relevance\": {\n    \"score\": 1,\n    \"summary\": \"\",\n    \"issues\": []\n  },\n  \"insight_quality\": {\n    \"score\": 1,\n    \"summary\": \"\",\n    \"strengths\": [],\n    \"weaknesses\": []\n  },\n  \"html_quality\": {\n    \"score\": 1,\n    \"summary\": \"\",\n    \"issues\": []\n  },\n  \"source_link_verification\": {\n    \"score\": 1,\n    \"summary\": \"\",\n    \"issues\": [],\n    \"verified_links\": [],\n    \"missing_links\": [],\n    \"invalid_links\": [],\n    \"incorrect_destinations\": []\n  },\n  \"overall_score\": 1.0\n}\n\n## 6. Final validation\n\nBefore returning:\n- Ensure all seven dimensions are present.\n- Ensure every score is an integer from 1 to 5.\n- Calculate overall_score as the average of all seven scores, rounded to two decimal places.\n- Ensure all required fields are present.\n- Ensure the JSON is complete and syntactically valid.\n- Return exactly one complete JSON object."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        7152,
+        -144
+      ],
+      "id": "ce74984f-09a8-456f-b465-1cfe8c6c5cf2",
+      "name": "AI Evaluation"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst rawOutput = $input.first().json.output;\n\nif (!rawOutput) {\n  throw new Error(\"AI Evaluation output is empty\");\n}\n\nconst cleanedOutput = rawOutput\n  .replace(/^\\s*```(?:json)?\\s*/i, '')\n  .replace(/\\s*```\\s*$/, '')\n  .trim();\n\nlet result;\n\ntry {\n  result = JSON.parse(cleanedOutput);\n} catch (error) {\n  const match = error.message.match(/position (\\d+)/);\n  const position = match ? Number(match[1]) : 0;\n\n  const start = Math.max(0, position - 300);\n  const end = Math.min(cleanedOutput.length, position + 300);\n\n  throw new Error(\n    \"Invalid AI Evaluation JSON: \" +\n    error.message +\n    \"\\n\\nProblematic JSON section:\\n\" +\n    cleanedOutput.substring(start, end)\n  );\n}\n// Normalize field names\nconst normalized = {};\n\nfor (const [key, value] of Object.entries(result)) {\n  const normalizedKey = key\n    .trim()\n    .toLowerCase()\n    .replace(/[\\s-]+/g, '_');\n\n  normalized[normalizedKey] = value;\n}\n\nconst dimensions = [\n  \"factual_accuracy\",\n  \"completeness\",\n  \"data_consistency\",\n  \"relevance\",\n  \"insight_quality\",\n  \"html_quality\",\n  \"source_link_verification\"\n];\n\nconst scores = {};\nconst summaries = {};\nconst dimensionIssues = {};\n\n// Extract score, summary and issues from each dimension\nfor (const key of dimensions) {\n  const dimension = normalized[key];\n\n  const score = Number(\n    dimension && typeof dimension === \"object\"\n      ? dimension.score\n      : dimension\n  );\n\n  if (!Number.isInteger(score) || score < 1 || score > 5) {\n    throw new Error(\n      `Invalid score for ${key}: ${\n        dimension && typeof dimension === \"object\"\n          ? JSON.stringify(dimension)\n          : dimension\n      }`\n    );\n  }\n\n  scores[key] = score;\n\n  summaries[key] =\n    dimension && typeof dimension === \"object\"\n      ? dimension.summary || \"\"\n      : \"\";\n\n  dimensionIssues[key] =\n    dimension && typeof dimension === \"object\" &&\n    Array.isArray(dimension.issues)\n      ? dimension.issues\n      : [];\n}\n\n// Extract missing sections from completeness\nconst completeness = normalized.completeness || {};\n\nconst missingSections =\n  typeof completeness === \"object\" &&\n  Array.isArray(completeness.missing_sections)\n    ? completeness.missing_sections\n    : [];\n\n// Collect all dimension-specific issues\nconst allFindings = [\n  ...Object.entries(dimensionIssues).flatMap(([dimension, issues]) =>\n    issues.map(issue => ({\n      dimension,\n      issue\n    }))\n  ),\n  ...(\n    Array.isArray(normalized.data_consistency?.inconsistencies)\n      ? normalized.data_consistency.inconsistencies.map(issue => ({\n          dimension: \"data_consistency\",\n          issue\n        }))\n      : []\n  ),\n  ...(\n    Array.isArray(normalized.html_quality?.issues)\n      ? normalized.html_quality.issues.map(issue => ({\n          dimension: \"html_quality\",\n          issue\n        }))\n      : []\n  )\n];\n\n// Include other AI-reported findings\nconst existingFindings = Array.isArray(normalized.findings)\n  ? normalized.findings\n  : [];\n\nconst keyIssues = Array.isArray(normalized.key_issues)\n  ? normalized.key_issues\n  : [];\n\nconst overallScore =\n  dimensions.reduce((sum, key) => sum + scores[key], 0) /\n  dimensions.length;\n\nconst uniqueFindings = [\n  ...new Set([\n    ...allFindings.map(item => JSON.stringify(item)),\n    ...existingFindings.map(item => JSON.stringify(item)),\n    ...keyIssues.map(item => JSON.stringify(item))\n  ])\n].map(item => JSON.parse(item));\n\nreturn {\n  json: {\n    ...normalized,\n    ...scores,\n\n    dimension_summaries: summaries,\n    dimension_issues: dimensionIssues,\n\n    findings: uniqueFindings,\n    key_issues: keyIssues,\n    missing_sections: missingSections,\n\n    unsupported_claims: [],\n    incorrect_claims: [],\n\n    unsupported_claim_count: 0,\n    incorrect_claim_count: 0,\n    missing_section_count: missingSections.length,\n\n    total_findings_count: uniqueFindings.length,\n    total_report_issues: uniqueFindings.length,\n\n    overall_score: Number(overallScore.toFixed(2)),\n    overall_percentage: Number(\n      (overallScore / 5 * 100).toFixed(2)\n    ),\n\n    evaluation_status: \"Completed\",\n    evaluation_date: new Date().toISOString()\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7504,
+        -144
+      ],
+      "id": "8240631a-4f58-43c3-b439-cac75e774f2a",
+      "name": "ParseEvaluation"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst data = $json;\n\n// 1. Evaluation dimensions (all seven)\nconst dimensions = [\n  \"factual_accuracy\",\n  \"completeness\",\n  \"data_consistency\",\n  \"relevance\",\n  \"insight_quality\",\n  \"html_quality\",\n  \"source_link_verification\"\n];\n\n// 2. Validate all seven scores\nconst scores = dimensions.map(key => {\n  const score = Number(data[key]);\n\n  if (!Number.isInteger(score) || score < 1 || score > 5) {\n    throw new Error(\n      `Invalid evaluation score for ${key}: ${data[key]}`\n    );\n  }\n\n  return score;\n});\n\n// 3. Calculate overall score and percentage\nconst averageScore =\n  scores.reduce((sum, score) => sum + score, 0) /\n  dimensions.length;\n\nconst overallScore = Number(averageScore.toFixed(2));\n\nconst overallPercentage = Number(\n  ((averageScore / 5) * 100).toFixed(2)\n);\n\n// 4. Count missing sections\nconst missingSections = Array.isArray(data.missing_sections)\n  ? data.missing_sections\n  : [];\n\nconst missingCount = missingSections.length;\n\n// 5. Get report findings\n// Prefer populated findings over key_issues, which may be empty.\nconst findings = Array.isArray(data.findings) && data.findings.length > 0\n  ? data.findings\n  : Array.isArray(data.key_issues) && data.key_issues.length > 0\n    ? data.key_issues\n    : Array.isArray(data.errors)\n      ? data.errors\n      : [];\n\n// 6. Count recommendation issues separately\nconst recommendationIssues = Array.isArray(data.issues)\n  ? data.issues\n  : [];\n\nconst totalRecommendationIssues = recommendationIssues.length;\n\n// 7. Count report issues\n// Findings are the evaluator's report-level findings.\n// Missing sections are included separately if not already represented.\nconst findingTexts = new Set(\n  findings.map(item =>\n    typeof item === \"string\"\n      ? item.trim().toLowerCase()\n      : JSON.stringify(item).trim().toLowerCase()\n  )\n);\n\nconst totalReportIssues = findings.length +\n  missingSections.filter(section => {\n    const text = String(section).trim().toLowerCase();\n    return !findingTexts.has(text);\n  }).length;\n\n// 8. Unsupported and incorrect claim counts\n// These remain null until the evaluator explicitly classifies claims.\nconst unsupportedCount = Array.isArray(data.unsupported_claims)\n  ? data.unsupported_claims.length\n  : null;\n\nconst incorrectCount = Array.isArray(data.incorrect_claims)\n  ? data.incorrect_claims.length\n  : null;\n\n// 9. Calculate individual dimension percentages\nconst metrics = {};\n\nfor (const key of dimensions) {\n  metrics[key + \"_percentage\"] = Number(\n    ((Number(data[key]) / 5) * 100).toFixed(2)\n  );\n}\n\n// 10. Return final metrics\nreturn {\n  json: {\n    ...data,\n    ...metrics,\n\n    overall_score: overallScore,\n    overall_percentage: overallPercentage,\n\n    unsupported_claim_count: unsupportedCount,\n    incorrect_claim_count: incorrectCount,\n    missing_section_count: missingCount,\n\n    total_findings_count: findings.length,\n    total_report_issues: totalReportIssues,\n    total_recommendation_issues: totalRecommendationIssues,\n\n    report_quality:\n      averageScore >= 4.5 ? \"Excellent\" :\n      averageScore >= 3.5 ? \"Good\" :\n      averageScore >= 2.5 ? \"Average\" :\n      averageScore >= 1.5 ? \"Poor\" :\n      \"Very Poor\"\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8224,
+        -160
+      ],
+      "id": "591ce339-4010-4c97-892a-52fa3b7b7d29",
+      "name": "Calculate Metrics"
+    },
+    {
+      "parameters": {
+        "operation": "setMetrics",
+        "metric": "customMetrics",
+        "metrics": {
+          "assignments": [
+            {
+              "name": "Factual Accuracy",
+              "value": "={{ $json.factual_accuracy }}",
+              "type": "number",
+              "id": "9d44bb89-2cd1-4a4a-b443-ab37e060cfb5"
+            },
+            {
+              "id": "7fcd0270-8eb3-4dcc-9c65-ea7bbc2df29b",
+              "name": "Completeness",
+              "value": "={{ $json.completeness }}",
+              "type": "number"
+            },
+            {
+              "id": "88b6f9b0-8ff2-49f2-950c-d7506ecc8634",
+              "name": "Data Consistency",
+              "value": "={{ $json.data_consistency }}",
+              "type": "number"
+            },
+            {
+              "id": "e1d204c2-35bb-471e-ab9a-9214402ab159",
+              "name": "Relevance",
+              "value": "={{ $json.relevance }}",
+              "type": "number"
+            },
+            {
+              "id": "2d5fc436-3793-487c-9e44-c2530937f400",
+              "name": "Insight Quality",
+              "value": "={{ $json.insight_quality }}",
+              "type": "number"
+            },
+            {
+              "id": "558e2039-35e3-4bcf-8836-bf3cd3639c5e",
+              "name": "HTML Quality",
+              "value": "={{ $json.html_quality }}",
+              "type": "number"
+            },
+            {
+              "id": "b1638097-24b1-4e81-844d-cbf319149bb7",
+              "name": "Overall Score",
+              "value": "={{ $json.overall_score }}",
+              "type": "number"
+            },
+            {
+              "id": "07cbf600-e82b-4862-8f3c-3e5b97c55be9",
+              "name": "Overall Percentage",
+              "value": "={{ $json.overall_percentage }}",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        8416,
+        -160
+      ],
+      "id": "2b0613bb-a569-44bb-9f61-7b507fd97010",
+      "name": "Evaluation"
+    },
+    {
+      "parameters": {
+        "content": "\n## Stage 6: AI Agent Evaluation & Metrics Logging\n\n- **Automated Quality Scoring:** Evaluates the generated HTML report against source marketplace data across 7 dimensions (accuracy, completeness, consistency, relevance, insights, HTML, and links).\n- **Actionable Fix Recommendations:** Parses evaluation findings and generates prioritized prompt, CSS, and workflow improvement suggestions.\n- **Metrics & Run Tracking:** Calculates overall evaluation scores and logs run numbers and results into the Data Table for ongoing quality monitoring.",
+        "height": 896,
+        "width": 1520,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7088,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "a8ebc3b7-6f10-4fd0-b895-140f7cd15331",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Evaluation Trigger",
+        "height": 400,
+        "width": 768
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        -720
+      ],
+      "typeVersion": 1,
+      "id": "2ff4ff4f-f210-4bf9-a8c2-00bb5267cdd8",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Ta2Y552KW5NQURfl",
+          "mode": "list",
+          "cachedResultName": "competitor_report_evaluation_dataset",
+          "cachedResultUrl": "/projects/f6TPUyYg6DeNcfOn/datatables/Ta2Y552KW5NQURfl"
+        },
+        "limitRows": true,
+        "maxRows": 2
+      },
+      "type": "n8n-nodes-base.evaluationTrigger",
+      "typeVersion": 4.7,
+      "position": [
+        -448,
+        -528
+      ],
+      "id": "a02fd8b8-4300-4522-974f-81962ff16703",
+      "name": "Evaluation Trigger"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        7696,
+        144
+      ],
+      "id": "1e73be08-6f76-43fe-a05c-6b78e4e119eb",
+      "name": "OpenRouter Chat Model6",
+      "credentials": {
+        "openRouterApi": {
+          "id": "nWY477Y5NkGiKRZK",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=ORIGINAL WAYFAIR SOURCE DATA:\n\n{{ JSON.stringify($('Reshape Wayfair Response').first().json) }}\n\nORIGINAL AMAZON SOURCE DATA:\n\n{{ JSON.stringify($('Reshape Amazon Response').first().json) }}\n\nORIGINAL WALMART SOURCE DATA:\n\n{{ JSON.stringify($('Reshape Walmart Response').first().json) }}\n\nGENERATED HTML REPORT:\n\n{{ $('Clean AI output').first().json.cleaned_html }}\n\nAI EVALUATION RESULTS:\n\n{{ JSON.stringify($('ParseEvaluation').first().json) }}\n\nAnalyze all inputs. Independently verify evaluation findings against the original source data and HTML. Identify report errors and workflow root causes. Return only the required valid JSON\n\n\n",
+        "options": {
+          "systemMessage": "=You are an expert e-commerce report auditor and n8n workflow optimization consultant.\n\nAnalyze the original Wayfair, Amazon and Walmart data, generated HTML report, and AI Evaluation results.\n\nYour objective is to identify genuine report problems, independently verify evaluator findings, identify root causes, and recommend actionable corrections.\n\n### 1. Verify the report\n\nCompare the generated HTML against the original marketplace data.\n\nCheck:\n- Product names, prices, ratings, reviews and product counts.\n- Averages, minimums, maximums and price ranges.\n- Discounts, shipping, delivery and product features.\n- Price distribution, whitespace analysis and recommendations.\n- Consistency across report sections.\n- Expected sections and completeness.\n- HTML structure, CSS and formatting.\n- Product, marketplace, supplier and manufacturer links.\n\nRecalculate numerical values using the original data where possible.\n\n### 2. Verify AI Evaluation findings\n\nReview all seven dimensions:\n- factual_accuracy\n- completeness\n- data_consistency\n- relevance\n- insight_quality\n- html_quality\n- source_link_verification\n\nIndependently verify findings against the original data and HTML.\n\nDistinguish:\n- Genuine report problems.\n- Incorrect evaluator findings.\n- Important problems missed by the evaluator.\n- Unsupported claims and missing information.\n\nDo not blindly trust evaluator findings. Do not invent errors.\n\n### 3. Verify source links\n\nInspect actual HTML hyperlinks, URL formats and destination relevance.\n\nCheck that Scope of Research → Data Sources contains clickable references to Wayfair, Amazon and Walmart.\n\nDo not claim a link works unless its destination was actually tested. Clearly identify links that could not be externally verified.\n\n### 4. Identify root causes and corrections\n\nFor each genuine issue, provide:\n- issue_type\n- severity (High, Medium, Low)\n- location\n- problem\n- reported_value\n- expected_value\n- evidence\n- recommended_fix\n- workflow_improvement\n\nIdentify the likely root cause:\n- Data collection\n- Data transformation\n- Calculations\n- AI prompt\n- HTML generation\n- Evaluation logic\n\nAvoid duplicate issues. Combine related problems when they share the same root cause.\n\n### 4A. Mandatory evaluation follow-up\n\nUse the AI Evaluation results as an input to the audit.\n\n- Examine every evaluator finding independently against the original marketplace data and generated HTML.\n- Do not automatically accept or reject evaluator findings.\n- Every verified genuine issue must appear in the `issues` array.\n- Every incorrect evaluator finding must be excluded from genuine issues.\n- If an evaluator finding is incorrect, do not recommend fixing a problem that does not exist.\n- When genuine issues are confirmed, generate specific corrective actions in `top_priorities`, `overall_recommendations`, or `workflow_improvements`.\n- Do not return empty recommendation arrays when genuine issues have been identified.\n- If no genuine issues are verified, empty arrays are acceptable.\n\n### 5. Prioritize improvements\n\nProvide:\n- Three highest-priority improvements.\n- Overall report recommendations.\n- Specific n8n workflow improvements.\n- A concise improvement summary.\n\nPrioritize fixes that prevent recurring errors across multiple reports.\n\nIf evidence is insufficient, state the limitation. If no genuine issues are found, return an empty issues array.\n\n### 6. Output limits\n\n- Return no more than 10 distinct issues.\n- Keep each issue concise and evidence-based.\n- Each evidence field should contain only the essential supporting facts.\n- Each recommendation should describe a specific action.\n- Top priorities: maximum 3.\n- Overall recommendations: maximum 5.\n- Workflow improvements: maximum 5.\n- Improvement summary: maximum 100 words.\n- Do not repeat the same recommendation in multiple sections unless necessary.\n\n### 7. Required JSON output\n\nReturn ONLY valid JSON. No Markdown, explanations or code fences.\n\nUse exactly this structure:\n\n{\n  \"issues\": [\n    {\n      \"issue_type\": \"\",\n      \"severity\": \"\",\n      \"location\": \"\",\n      \"problem\": \"\",\n      \"reported_value\": \"\",\n      \"expected_value\": \"\",\n      \"evidence\": \"\",\n      \"recommended_fix\": \"\",\n      \"workflow_improvement\": \"\"\n    }\n  ],\n  \"top_priorities\": [],\n  \"overall_recommendations\": [],\n  \"workflow_improvements\": [],\n  \"improvement_summary\": \"\"\n}\n\nEvery issue must contain all nine properties.\n\nUse empty arrays when no findings exist. Use double quotes, no trailing commas, and ensure the complete output can be parsed using JavaScript JSON.parse().\n\nNever return partial JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        7696,
+        -144
+      ],
+      "id": "ac804225-8404-4340-a0fb-5c5aa3fb266e",
+      "name": "AI Imporvement Recommendation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const evaluation = $('ParseEvaluation').first().json;\nconst trigger = $('InputParser').first().json;\n\nlet rawOutput = $input.first().json.output;\n\nif (!rawOutput || !rawOutput.trim()) {\n  return {\n    json: {\n      ...evaluation,\n      test_id: trigger.test_id,\n      product_category: trigger.product_category,\n      expected_sections: trigger.expected_sections,\n      issues: [],\n      top_priorities: [\"Skipped recommendations due to empty model output.\"],\n      overall_recommendations: [],\n      workflow_improvements: [],\n      improvement_summary: \"AI Improvement Recommendations returned an empty response.\",\n      improvement_recommendations: \"{}\"\n    }\n  };\n}\n\n// Remove Markdown code fences and fix stray LLM escapes or garbage tokens\nrawOutput = rawOutput\n  .replace(/^\\s*```(?:json)?\\s*/i, '')\n  .replace(/\\s*```\\s*$/, '')\n  .replace(/\\\\\\$/g, '$')\n  .replace(/:\\s*\\\\\"/g, ': \"')\n  .replace(/\\\\\"(\\s*[,}\\]])/g, '\"$1')\n  .replace(/([{\\[,]\\s*)[^\"{\\[\\]}\\s][^:\\n]*\\n(\\s*\")/g, '$1\\n$2')\n  .trim();\n\nlet recommendations;\n\ntry {\n  recommendations = JSON.parse(rawOutput);\n} catch (error) {\n  recommendations = {\n    issues: [],\n    top_priorities: [\"Skipped recommendations due to malformed model JSON: \" + error.message],\n    overall_recommendations: [],\n    workflow_improvements: [],\n    improvement_summary: \"Could not parse AI Improvement Recommendations output.\"\n  };\n}\n\nreturn {\n  json: {\n    ...evaluation,\n    ...recommendations,\n\n    // Restore evaluation test information\n    test_id: trigger.test_id,\n    product_category: trigger.product_category,\n    expected_sections: trigger.expected_sections,\n\n    issues: Array.isArray(recommendations.issues)\n      ? recommendations.issues : [],\n\n    top_priorities: Array.isArray(recommendations.top_priorities)\n      ? recommendations.top_priorities : [],\n\n    overall_recommendations: Array.isArray(recommendations.overall_recommendations)\n      ? recommendations.overall_recommendations : [],\n\n    workflow_improvements: Array.isArray(recommendations.workflow_improvements)\n      ? recommendations.workflow_improvements : [],\n\n    improvement_summary: recommendations.improvement_summary || \"\",\n\n    improvement_recommendations: JSON.stringify(recommendations)\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8016,
+        -160
+      ],
+      "id": "99830d89-799b-40a9-8417-570f4e8d238f",
+      "name": "Parse Recommendations"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "5zMV2vYAisMeE3Id",
+          "mode": "list",
+          "cachedResultName": "competitor_report_evaluation_results",
+          "cachedResultUrl": "/projects/f6TPUyYg6DeNcfOn/datatables/5zMV2vYAisMeE3Id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "test_id": "={{ $json.test_id }}",
+            "product_category": "={{ $json.product_category }}",
+            "factual_accuracy": "={{ $json.factual_accuracy }}",
+            "completeness": "={{ $json.completeness }}",
+            "data_consistency": "={{ $json.data_consistency }}",
+            "relevance": "={{ $json.relevance }}",
+            "insight_quality": "={{ $json.insight_quality }}",
+            "html_quality": "={{ $json.html_quality }}",
+            "overall_score": "={{ $json.overall_score }}",
+            "overall_percentage": "={{ $json.overall_percentage }}",
+            "incorrect_claim_count": "={{ $json.incorrect_claim_count }}",
+            "unsupported_claim_count": "={{ $json.unsupported_claim_count }}",
+            "missing_section_count": "={{ $json.missing_section_count }}",
+            "report_quality": "={{ $json.report_quality }}",
+            "improvement_recommendations": "={{ $('Parse Recommendations').first().json.improvement_recommendations}}",
+            "evaluation_date": "={{ $json.evaluation_date }}",
+            "run_number": "={{ $json.run_number }}",
+            "previous_overall_score": "={{ $json.previous_overall_score }}",
+            "total_report_issues": "={{ $('Calculate Metrics').first().json.total_report_issues }}",
+            "total_recommendation_issues": "={{ $('Calculate Metrics').first().json.total_recommendation_issues }}",
+            "wayfair_data": "={{ JSON.stringify($('Reshape Wayfair Response').first().json) }}",
+            "walmart_data": "={{ JSON.stringify($('Reshape Walmart Response').first().json) }}",
+            "amazon_data": "={{ JSON.stringify($('Reshape Amazon Response').first().json) }}",
+            "html_report": "={{ $('Clean AI output').first().json.cleaned_html }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "test_id",
+              "displayName": "test_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "product_category",
+              "displayName": "product_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "run_number",
+              "displayName": "run_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "previous_overall_score",
+              "displayName": "previous_overall_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "overall_score",
+              "displayName": "overall_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "overall_percentage",
+              "displayName": "overall_percentage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "report_quality",
+              "displayName": "report_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "evaluation_date",
+              "displayName": "evaluation_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "factual_accuracy",
+              "displayName": "factual_accuracy",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "completeness",
+              "displayName": "completeness",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "data_consistency",
+              "displayName": "data_consistency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "relevance",
+              "displayName": "relevance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "insight_quality",
+              "displayName": "insight_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "html_quality",
+              "displayName": "html_quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "unsupported_claim_count",
+              "displayName": "unsupported_claim_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "incorrect_claim_count",
+              "displayName": "incorrect_claim_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "missing_section_count",
+              "displayName": "missing_section_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "total_report_issues",
+              "displayName": "total_report_issues",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "total_recommendation_issues",
+              "displayName": "total_recommendation_issues",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "improvement_recommendations",
+              "displayName": "improvement_recommendations",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wayfair_data",
+              "displayName": "wayfair_data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "amazon_data",
+              "displayName": "amazon_data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "walmart_data",
+              "displayName": "walmart_data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "html_report",
+              "displayName": "html_report",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        8416,
+        32
+      ],
+      "id": "536f5401-31fc-42a8-a03e-06cefabf7d7a",
+      "name": "Update Data Table"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Temporary run number for testing\nconst runNumber = 1;\n\nreturn {\n  json: {\n    ...data,\n    run_number: runNumber,\n    previous_overall_score: null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8208,
+        80
+      ],
+      "id": "59befc50-7a73-4c1a-ad41-b19f30dece1d",
+      "name": "Calculate Run Number"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CATEGORY: {{ $('InputParser').first().json.categoryDisplayName }}\n\nVERIFIED STATS:\n{{ JSON.stringify($('VerifiedSatsCalculator').first().json.verifiedStats) }}\n\nAMAZON PRODUCTS:\n{{ JSON.stringify($('Reshape Amazon Response').first().json.amazonProducts?.slice(0, 15), null, 2) }}\n\nWALMART PRODUCTS:\n{{ JSON.stringify($('Reshape Walmart Response').first().json.walmartProducts?.slice(0, 15), null, 2) }}",
+        "options": {
+          "systemMessage": "=You are a marketplace analyst. Analyze Amazon and Walmart competitor products.\n\n  TASK: Create a Competitor Analysis section covering BOTH Amazon AND Walmart with clickable product links.\n\n  IMPORTANT: When listing products in tables, wrap product names in anchor tags using their URL:\n  <a href=\"[product_url]\">[Product Name]</a>\n\n  INCLUDE:\n  1. Amazon Analysis:\n     - Product count, price range, avg rating\n     - Top 3 performers WITH clickable links to their URLs\n     - Common features\n    - Size/color variety\n  2. Walmart Analysis:\n     - Product count, price range , avg rating\n     - Top 3 performers WITH clickable links to their URLs\n     - Common features\n     - Size/color variety\n  3. Cross-Competitor Comparison\n     - Which competitor has better pricing\n     - Which has more variety\n     - Key differentiators\n\n  OUTPUT FORMAT (HTML only, no markdown):\n  <section class=\"competitor-analysis\">\n    <h2>Competitor Analysis</h2>\n\n    <div class=\"amazon-section\">\n      <h3>Amazon Overview</h3>\n      <div class=\"stats-grid\">\n        <div class=\"stat-card\">\n          <span class=\"stat-value\">[Count]</span>\n          <span class=\"stat-label\">Products Analyzed</span>\n        </div>\n        <div class=\"stat-card\">\n          <span class=\"stat-value\">[Min] - [Max]</span>\n          <span class=\"stat-label\">Price Range</span>\n        </div>\n        <div class=\"stat-card\">\n          <span class=\"stat-value\">[Avg]/5</span>\n          <span class=\"stat-label\">Avg Rating</span>\n        </div>\n      </div>\n      <div class=\"top-performers\">\n        <h4>Top Amazon Products</h4>\n        <table class=\"data-table\">\n          <thead><tr><th>Product</th><th>Price</th><th>Rating</th></tr></thead>\n          <tbody>\n            <tr>\n              <td><a href=\"[full_amazon_url]\">[Product Name - shortened if needed]</a></td>\n              <td>[Price]</td>\n              <td>[Rating] ([Review Count])</td>\n              <td>[Size options or count]</td>\n            </tr>\n            <tr>\n              <td><a href=\"[full_amazon_url]\">[Product Name]</a></td>\n              <td>[Price]</td>\n              <td>[Rating] ([Review Count])</td>\n              <td>[Size options or count]</td>\n            </tr>\n            <tr>\n              <td><a href=\"[full_amazon_url]\">[Product Name]</a></td>\n              <td>[Price]</td>\n              <td>[Rating] ([Review Count])</td>\n              <td>[Size options or count]</td>\n            </tr>\n          </tbody>\n        </table>\n      </div>\n     <div class=\"common-features\">\n        <h4>Common Features</h4>\n        <ul>\n          <li>[Feature 1]</li>\n          <li>[Feature 2]</li>\n          <li>[Feature 3]</li>\n          <li>[Feature 4]</li>\n        </ul>\n      </div>\n      <div class=\"variety\" style=\"margin-top: 1.5rem;\">\n        <h4>Size/Color Variety</h4>\n        <ul>\n          <li><strong>Sizes:</strong> [Range description]</li>\n          <li><strong>Colors:</strong> [Count and types]</li>\n          <li><strong>Brands:</strong> [List main brands]</li>\n        </ul>\n      </div>\n    </div>\n\n    <div class=\"walmart-section\">\n      <h3>Walmart Overview</h3>\n      <div class=\"stats-grid\">\n        <div class=\"stat-card\">\n          <span class=\"stat-value\">[Count]</span>\n          <span class=\"stat-label\">Products Analyzed</span>\n        </div>\n        <div class=\"stat-card\">\n          <span class=\"stat-value\">[Min] - [Max]</span>\n          <span class=\"stat-label\">Price Range</span>\n        </div>\n      </div>\n      <div class=\"top-performers\">\n        <h4>Top Walmart Products</h4>\n        <table class=\"data-table\">\n          <thead><tr><th>Product</th><th>Price</th><th>Sizes Available</th></tr></thead>\n          <tbody>\n            <tr>\n              <td><a href=\"[full_walmart_url]\">[Product Name]</a></td>\n              <td>[Price]</td>\n              <td>[Rating] ([Review Count])</td>\n              <td>[Size options or count]</td>\n            </tr>\n            <tr>\n              <td><a href=\"[full_walmart_url]\">[Product Name]</a></td>\n              <td>[Price]</td>\n              <td>[Rating] ([Review Count])</td>\n              <td>[Size options]</td>\n            </tr>\n            <tr>\n              <td><a href=\"[full_walmart_url]\">[Product Name]</a></td>\n              <td>[Price]</td>\n              <td>[Rating] ([Review Count])</td>\n              <td>[Size options]</td>\n            </tr>\n          </tbody>\n        </table>\n      </div>\n    <div class=\"common-features\">\n        <h4>Common Features</h4>\n        <ul>\n          <li>[Feature 1]</li>\n          <li>[Feature 2]</li>\n          <li>[Feature 3]</li>\n          <li>[Feature 4]</li>\n        </ul>\n      </div>\n      <div class=\"variety\" style=\"margin-top: 1.5rem;\">\n        <h4>Size/Color Variety</h4>\n        <ul>\n          <li><strong>Sizes:</strong> [Range description]</li>\n          <li><strong>Colors:</strong> [Count and types]</li>\n          <li><strong>Brands:</strong> [List main brands]</li>\n        </ul>\n      </div>\n    </div>\n\n    <div class=\"cross-comparison\">\n      <h3>Cross-Competitor Insights</h3>\n      <ul>\n        <li><strong>Pricing:</strong> [Which competitor wins on price and why]</li>\n        <li><strong>Variety:</strong> [Which has better selection]</li>\n        <li><strong>Key Differentiators:</strong> [What makes each unique]</li>\n        <li><strong>Target Audience:</strong> [Who each competitor serves best]</li>\n      </ul>\n    </div>\n  </section>\n\n  CRITICAL:\n  - Extract actual URLs from the product data and use them in href attributes\n  - Use the full URL (https://www.amazon.com/... or https://www.walmart.com/...)\n  - If URL is not available, just use the product name without a link\n  - Truncate long product names to ~50 characters for readability\n- Always use VERIFIED STATS for all calculated metrics (never recalculate from the product list):\n  * Amazon Overview: productCount, priceRange, avgRating from verifiedStats.amazon\n  * Walmart Overview: productCount, priceRange, avgRating from verifiedStats.walmart"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3056,
+        -48
+      ],
+      "id": "ee9ef7f4-baa8-4165-b88f-c91dd535dfbe",
+      "name": "CompetitorAnalysisGenerator"
+    },
+    {
+      "parameters": {
+        "jsCode": "const wayfairProducts = $('Reshape Wayfair Response').first().json.wayfair_products || [];\nconst amazonProducts = $('Reshape Amazon Response').first().json.amazonProducts || [];\nconst walmartProducts = $('Reshape Walmart Response').first().json.walmartProducts || [];\n\nfunction parseNumber(val) {\n  if (val === null || val === undefined) return NaN;\n  const cleaned = String(val).replace(/[^0-9.-]/g, '');\n  return parseFloat(cleaned);\n}\n\nfunction parseRating(val) {\n  if (val === null || val === undefined) return NaN;\n  const match = String(val).match(/(\\d+(\\.\\d+)?)/);\n  return match ? parseFloat(match[1]) : NaN;\n}\n\nfunction calculateStats(products) {\n  const prices = products.map(p => parseNumber(p.price)).filter(n => !isNaN(n) && n > 0);\n  const ratings = products.map(p => parseRating(p.rating)).filter(n => !isNaN(n) && n > 0);\n  const reviews = products.map(p => parseNumber(p.review_count || p.reviews)).filter(n => !isNaN(n));\n\n  const count = products.length;\n  const minPrice = prices.length ? Math.min(...prices) : 0;\n  const maxPrice = prices.length ? Math.max(...prices) : 0;\n  const avgPrice = prices.length ? +(prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2) : 0;\n  const avgRating = ratings.length ? +(ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2) : 0;\n  const totalReviews = reviews.reduce((a, b) => a + b, 0);\n\n  const budgetCount = prices.filter(p => p < 100).length;\n  const midCount = prices.filter(p => p >= 100 && p <= 300).length;\n  const premiumCount = prices.filter(p => p > 300).length;\n\n  const hasDiscountData = products.some(\n    p => (p.list_price && parseNumber(p.list_price) > parseNumber(p.price)) ||\n         (p.originalPrice && parseNumber(p.originalPrice) > parseNumber(p.price))\n  );\n\n  return {\n    productCount: count,\n    minPrice: `$${minPrice.toFixed(2)}`,\n    maxPrice: `$${maxPrice.toFixed(2)}`,\n    priceRange: `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`,\n    avgPrice: `$${avgPrice.toFixed(2)}`,\n    avgRating: avgRating,\n    totalReviews: totalReviews,\n    priceBands: {\n      budgetUnder100: budgetCount,\n      mid100To300: midCount,\n      premiumOver300: premiumCount\n    },\n    hasDiscountData: hasDiscountData\n  };\n}\n\nconst verifiedStats = {\n  wayfair: calculateStats(wayfairProducts),\n  amazon: calculateStats(amazonProducts),\n  walmart: calculateStats(walmartProducts)\n};\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    verifiedStats\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        -224
+      ],
+      "id": "4da2f4bf-a6ed-41a4-96dd-a3f6b5a45162",
+      "name": "VerifiedSatsCalculator"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "InputParser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "InputParser": {
+      "main": [
+        [
+          {
+            "node": "Fetch Wayfair Products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Amazon Products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Walmart Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Wayfair Products": {
+      "main": [
+        [
+          {
+            "node": "Reshape Wayfair Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Amazon Products": {
+      "main": [
+        [
+          {
+            "node": "Reshape Amazon Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Walmart Products": {
+      "main": [
+        [
+          {
+            "node": "Reshape Walmart Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reshape Wayfair Response": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reshape Amazon Response": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Reshape Walmart Response": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "VerifiedSatsCalculator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScopeGeneratorNode": {
+      "main": [
+        [
+          {
+            "node": "WaitAfterScope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WaitAfterScope": {
+      "main": [
+        [
+          {
+            "node": "ExecuteSummaryGenerator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ExecuteSummaryGenerator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ExecuteSummaryGenerator": {
+      "main": [
+        [
+          {
+            "node": "WaitAfterExecutive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WaitAfterExecutive": {
+      "main": [
+        [
+          {
+            "node": "CompetitorAnalysisGenerator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CompetitorAnalysisGenerator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WaitAfterAmazon": {
+      "main": [
+        [
+          {
+            "node": "ComparisonGenerator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ComparisonGenerator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ComparisonGenerator": {
+      "main": [
+        [
+          {
+            "node": "WaitAfterComparisonGenerator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WaitAfterComparisonGenerator": {
+      "main": [
+        [
+          {
+            "node": "Pricing & Whitespace Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Pricing & Whitespace Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pricing & Whitespace Generator": {
+      "main": [
+        [
+          {
+            "node": "WaitAfterPricing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WaitAfterPricing": {
+      "main": [
+        [
+          {
+            "node": "RecommendationGeneratorNode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RecommendationGeneratorNode",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RecommendationGeneratorNode": {
+      "main": [
+        [
+          {
+            "node": "WaitAfterRecommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WaitAfterRecommendation": {
+      "main": [
+        [
+          {
+            "node": "Supplier Identification Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Supplier Identification Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supplier Identification Generator": {
+      "main": [
+        [
+          {
+            "node": "HTML Assembler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Assembler": {
+      "main": [
+        [
+          {
+            "node": "Clean AI output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean AI output": {
+      "main": [
+        [
+          {
+            "node": "Download HTML file from Here",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download HTML file from Here": {
+      "main": [
+        [
+          {
+            "node": "See HTML output here",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Evaluation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Evaluation": {
+      "main": [
+        [
+          {
+            "node": "ParseEvaluation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "See HTML output here": {
+      "main": [
+        [
+          {
+            "node": "AI Evaluation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ParseEvaluation": {
+      "main": [
+        [
+          {
+            "node": "AI Imporvement Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Evaluation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calculate Run Number",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Evaluation Trigger": {
+      "main": [
+        [
+          {
+            "node": "InputParser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Imporvement Recommendation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Imporvement Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Parse Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Parse Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Calculate Run Number": {
+      "main": [
+        [
+          {
+            "node": "Update Data Table",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "CompetitorAnalysisGenerator": {
+      "main": [
+        [
+          {
+            "node": "WaitAfterAmazon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VerifiedSatsCalculator": {
+      "main": [
+        [
+          {
+            "node": "ScopeGeneratorNode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "q1uPxwcag3RPY94F",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "9c9a35c7-84a1-424d-855e-7d4f3be1475d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb8be2a2c5b665762adc538c6725f4b742c5496d94a290ff625375e0a0635319"
+  },
+  "nodeGroups": [],
+  "id": "qMYlKEZAIdQvJpND",
+  "tags": []
+}
