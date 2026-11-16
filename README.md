@@ -14,17 +14,7 @@ Style Prompt → Moodboard Generation → Market Trend Discovery → Competitor 
 
 ---
 
-## 💡 Project Milestones & Capabilities
 
-| Project | Core Focus | Intended Outcome | Artifacts
-| :--- | :--- | :--- | :---
-| **1. Moodboard Agent** | Convert style prompts into visual outputs. | Support visual exploration and creative ideation. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg) |
-| **2. Market Trend Discovery Agent** | Automate Market Research Process | Identify emerging trends and potential market opportunities. |**Design:** [Market Trend Discovery Agent](Artifacts/ConsumerTrendDiscoveryAIAgentDesign.md)<br> **PRD:** [Product Requirement Document](Artifacts/ConsumerTrendDiscoverAIAgentPRD.md)<br> **REPORT:** [View Report](Artifacts/OutdoorRugTrendReport.pdf)<br> **DEMO:** [Watch the Demo](https://youtu.be/7hMDi48Bh80)|
-| **3. Competitor Monitoring Agent** | Track competitor product launches and pricing. | Identify competitive gaps and market whitespace. |**Design:** [View Design Document](Artifacts/CompetitorMonitoringAgentDesignDocument.md)<br> **REPORT:** [View Report](Artifacts/CompetitorAnalysisReport.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/CompetitorMonitoringAIAgentPRD.md)<br> **DEMO:** [Watch the Demo](https://www.loom.com/share/20e7bf92ad5a48269e31252e4647adc0)|
-| **4. AI Insight & Content Agent** | Use Gemini to transform research signals into insights and content ideas. | Generate campaign concepts and marketing content. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://www.loom.com/share/20e7bf92ad5a48269e31252e4647adc0)|
-| **5. Market Intelligence Dashboard** | Organize findings in an auto-updating Google Sheets dashboard. | Make market intelligence easier to review and use. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)| 
-
----
 
 ## 🎯 Target Users
 
@@ -73,14 +63,13 @@ These metrics provide a proposed evaluation framework; actual targets and busine
 
 ## 📁 Project Artifacts & Deliverables
 
-- Moodboard Agent design document, PRD, and demo.
-- Market Trend Discovery Agent.
-- Competitor Monitoring Agent.
-- AI Insight & Content Agent.
-- Unified Market Intelligence Dashboard prototype.
-- n8n workflow JSON files and implementation artifacts.
-- Google Sheets reporting integration.
-- Technical documentation and project demonstrations.
+| Project | Core Focus | Intended Outcome | Artifacts
+| :--- | :--- | :--- | :---
+| **1. Moodboard Agent** | Convert style prompts into visual outputs. | Support visual exploration and creative ideation. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg) |
+| **2. Market Trend Discovery Agent** | Automate Market Research Process | Identify emerging trends and potential market opportunities. |**Design:** [Market Trend Discovery Agent](Artifacts/ConsumerTrendDiscoveryAIAgentDesign.md)<br> **PRD:** [Product Requirement Document](Artifacts/ConsumerTrendDiscoverAIAgentPRD.md)<br> **REPORT:** [View Report](Artifacts/OutdoorRugTrendReport.pdf)<br> **DEMO:** [Watch the Demo](https://youtu.be/7hMDi48Bh80)|
+| **3. Competitor Monitoring Agent** | Track competitor product launches and pricing. | Identify competitive gaps and market whitespace. |**Design:** [View Design Document](Artifacts/CompetitorMonitoringAgentDesignDocument.md)<br> **REPORT:** [View Report](Artifacts/CompetitorAnalysisReport.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/CompetitorMonitoringAIAgentPRD.md)<br> **DEMO:** [Watch the Demo](https://www.loom.com/share/20e7bf92ad5a48269e31252e4647adc0)|
+| **4. AI Insight & Content Agent** | Use Gemini to transform research signals into insights and content ideas. | Generate campaign concepts and marketing content. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://www.loom.com/share/20e7bf92ad5a48269e31252e4647adc0)|
+| **5. Market Intelligence Dashboard** | Organize findings in an auto-updating Google Sheets dashboard. | Make market intelligence easier to review and use. |**Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)<br> **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)<br> **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)<br> **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)| 
 
 ---
 
@@ -92,62 +81,6 @@ These metrics provide a proposed evaluation framework; actual targets and busine
 - **Human-Centered Product Thinking:** Connect AI-generated insights to stakeholder needs and business decisions.
 - **Workflow Reliability:** Use logging, merging, error handling, and containerized infrastructure to support dependable automation.
 
-
-
-
-
-# Wayfair n8n AI Agent Engineering Externship
-
-![Project Status](https://img.shields.io/badge/Project-In_Progress-yellow)
-
-This repository documents an 8-week technical externship focused on building autonomous AI agents to solve high-scale e-commerce challenges for **Wayfair**.
-
----
-
-## 🎯 Project Milestones & Labs
-
-### 🖼️ Project 1: Moodboard Agent (The Creative Foundation)
-*Transforming style prompts into curated visual outputs.*
-
-### 📂 Artifacts
-
-* **Design:** [Moodboard Generator AI Agent](Artifacts/MoodboardAgentDesignDocument.md)
-
-* **PromptGenerator:** [Prompt Generator](Artifacts/PromptGenerator.pdf)
-
-* **PRD:** [Product Requirement Document](Artifacts/MoodboardAgentPrd.md)
-
-* **DEMO:** [Watch the Demo](https://youtu.be/SoBe0uOeaNg)
-
-### 🔍 Project 2: Market Trend Discovery
-*Building agents to scrape and analyze product data and social media.*
-* **Lab 02:** Discovery AI Agent
-* **Artifacts:** [Product Requirement Document](#)
-
-### 📊 Project 3: Competitor Benchmarking (Monitoring Agent)
-*Tracking competitor launches and pricing to identify "whitespace" opportunities.*
-* **Lab 03:** Competitor Monitoring AI Agent
-* **Artifacts:** [Product Requirement Document](#)
-
-### 💡 Project 4: AI Insight & Content Agent
-*Using Gemini to turn raw signals into marketing content and campaign ideas.*
-* **Lab 04:** Content Strategy AI Agent
-* **Artifacts:** [Product Requirement Document](#)
-
-### 📈 Project 5: Unified Market Intelligence Dashboard
-*Designing a live, auto-updating Google Sheets tool for supply chain managers.*
-* **Lab 05:** Final AI Agent
-* **Demos & Prototypes:**
-  * [DEMO: UI Prototype Walkthrough using Base44](#)
-  * [Read about Prototype](#)
-  * [PRD Case Study DEMO](#) | [PRD Case Study Presentation PDF](#)
-* **Final Deliverables:**
-  * [EXTERNSHIP PROJECT DEMO](#)
-  * [View JSON: Updated Market Trend AI Agent](#)
-  * [View JSON: Updated Competitor Monitoring AI Agent](#)
-  * [View JSON: Dashboard Builder AI Agent](#)
-
-🚀 **View All Labs & Artifacts:** [Agentic Workflow Hub](#)
 
 ---
 
